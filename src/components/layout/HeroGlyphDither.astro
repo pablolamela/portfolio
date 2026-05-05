@@ -107,17 +107,17 @@ import styles from "./HeroGlyphDither.module.scss";
 
   const DEFAULT_PARAMS = {
     preset: "default",
-    cellSize: 8,
-    fontScale: 1,
+    cellSize: 6,
+    fontScale: 1.2,
     textColor: "#ffffff",
     backgroundColor: "#000000",
-    edgeSoftness: 0.36,
-    foregroundBrightness: 1,
-    midtoneBrightness: 0.62,
+    edgeSoftness: 0.38,
+    foregroundBrightness: 1.5,
+    midtoneBrightness: 0.53,
     backgroundOpacity: 0,
-    contrast: 1.7,
-    thresholdBias: -0.02,
-    gamma: 0.82,
+    contrast: 1.39,
+    thresholdBias: -0.03,
+    gamma: 1.06,
     noiseAmount: 0,
   };
 
@@ -466,20 +466,28 @@ import styles from "./HeroGlyphDither.module.scss";
       const fontWeight = hs?.fontWeight || "400";
       const computedFontSize = hs ? parseFloat(hs.fontSize) : 64;
 
+      // Scale cellSize proportionally to font size so the cells-per-character
+      // ratio stays constant across viewports (cellSize=6 is calibrated for ~100px font)
+      const REFERENCE_FONT_SIZE = 100;
+      const effectiveCellSize = Math.max(
+        2,
+        Math.round(params.cellSize * (computedFontSize * params.fontScale) / REFERENCE_FONT_SIZE),
+      );
+
       renderSource(sourceCanvas, lines, w, h, fontFamily, fontWeight, computedFontSize, params.fontScale);
       uploadTexture(gl!, srcTex, 0, sourceCanvas);
 
       const glyphs = GLYPH_PRESETS[params.preset] || GLYPH_PRESETS.default;
-      const newAtlasKey = `${params.preset}:${params.cellSize}`;
+      const newAtlasKey = `${params.preset}:${effectiveCellSize}`;
       if (newAtlasKey !== atlasKey) {
-        const atlas = buildAtlas(glyphs, params.cellSize);
+        const atlas = buildAtlas(glyphs, effectiveCellSize);
         uploadTexture(gl!, atlasTex, 1, atlas);
         atlasKey = newAtlasKey;
       }
 
       gl!.viewport(0, 0, w, h);
       gl!.uniform2f(uLoc.res, w, h);
-      gl!.uniform1f(uLoc.cell, params.cellSize);
+      gl!.uniform1f(uLoc.cell, effectiveCellSize);
       gl!.uniform1f(uLoc.glyphs, glyphs.length);
       gl!.uniform3f(uLoc.text, ...parseHex(params.textColor));
       gl!.uniform3f(uLoc.bg, ...parseHex(params.backgroundColor));
