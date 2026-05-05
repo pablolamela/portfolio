@@ -27,6 +27,12 @@ import styles from "./HeroGlyphDither.module.scss";
     </label>
 
     <label>
+      Glyph
+      <input name="glyphScale" type="range" min="0.4" max="1.4" step="0.01" />
+      <output data-output-for="glyphScale"></output>
+    </label>
+
+    <label>
       Font
       <input name="fontScale" type="range" min="0.45" max="1.2" step="0.01" />
       <output data-output-for="fontScale"></output>
@@ -81,6 +87,66 @@ import styles from "./HeroGlyphDither.module.scss";
     </label>
 
     <label>
+      Ripple scale
+      <input name="rippleScale" type="range" min="0" max="100" step="1" />
+      <output data-output-for="rippleScale"></output>
+    </label>
+
+    <label>
+      Ripple strength
+      <input name="rippleStrength" type="range" min="0" max="100" step="1" />
+      <output data-output-for="rippleStrength"></output>
+    </label>
+
+    <label>
+      Ripple viscosity
+      <input name="rippleViscosity" type="range" min="0" max="100" step="1" />
+      <output data-output-for="rippleViscosity"></output>
+    </label>
+
+    <label>
+      Ripple decay
+      <input name="rippleDecay" type="range" min="0" max="100" step="1" />
+      <output data-output-for="rippleDecay"></output>
+    </label>
+
+    <label>
+      Chromatic
+      <input name="rippleChromatic" type="range" min="0" max="100" step="1" />
+      <output data-output-for="rippleChromatic"></output>
+    </label>
+
+    <label>
+      Ripple speed
+      <input name="rippleSpeed" type="range" min="0" max="100" step="1" />
+      <output data-output-for="rippleSpeed"></output>
+    </label>
+
+    <label>
+      Ripple momentum
+      <input name="rippleMomentum" type="range" min="0" max="100" step="1" />
+      <output data-output-for="rippleMomentum"></output>
+    </label>
+
+    <label>
+      Ripple trail
+      <input name="rippleTrail" type="range" min="0" max="100" step="1" />
+      <output data-output-for="rippleTrail"></output>
+    </label>
+
+    <label>
+      Ripple directionality
+      <input name="rippleDirectionality" type="range" min="0" max="100" step="1" />
+      <output data-output-for="rippleDirectionality"></output>
+    </label>
+
+    <label>
+      Ripple irregularity
+      <input name="rippleIrregularity" type="range" min="0" max="100" step="1" />
+      <output data-output-for="rippleIrregularity"></output>
+    </label>
+
+    <label>
       Color
       <input name="textColor" type="color" />
     </label>
@@ -107,7 +173,8 @@ import styles from "./HeroGlyphDither.module.scss";
 
   const DEFAULT_PARAMS = {
     preset: "default",
-    cellSize: 6,
+    cellSize: 5,
+    glyphScale: 1.3,
     fontScale: 1.2,
     textColor: "#ffffff",
     backgroundColor: "#000000",
@@ -119,11 +186,25 @@ import styles from "./HeroGlyphDither.module.scss";
     thresholdBias: -0.03,
     gamma: 1.06,
     noiseAmount: 0,
+    rippleScale: 24,
+    rippleStrength: 39,
+    rippleViscosity: 53,
+    rippleDecay: 71,
+    rippleChromatic: 100,
+    rippleSpeed: 100,
+    rippleMomentum: 100,
+    rippleTrail: 30,
+    rippleDirectionality: 10,
+    rippleIrregularity: 30,
   };
 
   type Params = typeof DEFAULT_PARAMS;
 
-  // ─── GLSL ─────────────────────────────────────────────────────────────────
+  const MAX_RIPPLES = 16;
+  const MIN_DISTANCE_PX = 6;
+  const MIN_INTERVAL_MS = 30;
+
+  // ─── GLSL — Dither (INTOCABLE) ────────────────────────────────────────────
 
   const VERT_SRC = `
     attribute vec2 a_position;
@@ -166,24 +247,25 @@ import styles from "./HeroGlyphDither.module.scss";
       vec2 base = cellIdx * u_cellSize;
       float sOff = u_cellSize / 5.0;
 
-      float cov = 0.0;
-      cov += texture2D(u_source, (base + vec2(1.0,1.0)*sOff) / u_resolution).r;
-      cov += texture2D(u_source, (base + vec2(2.0,1.0)*sOff) / u_resolution).r;
-      cov += texture2D(u_source, (base + vec2(3.0,1.0)*sOff) / u_resolution).r;
-      cov += texture2D(u_source, (base + vec2(4.0,1.0)*sOff) / u_resolution).r;
-      cov += texture2D(u_source, (base + vec2(1.0,2.0)*sOff) / u_resolution).r;
-      cov += texture2D(u_source, (base + vec2(2.0,2.0)*sOff) / u_resolution).r;
-      cov += texture2D(u_source, (base + vec2(3.0,2.0)*sOff) / u_resolution).r;
-      cov += texture2D(u_source, (base + vec2(4.0,2.0)*sOff) / u_resolution).r;
-      cov += texture2D(u_source, (base + vec2(1.0,3.0)*sOff) / u_resolution).r;
-      cov += texture2D(u_source, (base + vec2(2.0,3.0)*sOff) / u_resolution).r;
-      cov += texture2D(u_source, (base + vec2(3.0,3.0)*sOff) / u_resolution).r;
-      cov += texture2D(u_source, (base + vec2(4.0,3.0)*sOff) / u_resolution).r;
-      cov += texture2D(u_source, (base + vec2(1.0,4.0)*sOff) / u_resolution).r;
-      cov += texture2D(u_source, (base + vec2(2.0,4.0)*sOff) / u_resolution).r;
-      cov += texture2D(u_source, (base + vec2(3.0,4.0)*sOff) / u_resolution).r;
-      cov += texture2D(u_source, (base + vec2(4.0,4.0)*sOff) / u_resolution).r;
-      cov /= 16.0;
+      vec3 cov3 = vec3(0.0);
+      cov3 += texture2D(u_source, (base + vec2(1.0,1.0)*sOff) / u_resolution).rgb;
+      cov3 += texture2D(u_source, (base + vec2(2.0,1.0)*sOff) / u_resolution).rgb;
+      cov3 += texture2D(u_source, (base + vec2(3.0,1.0)*sOff) / u_resolution).rgb;
+      cov3 += texture2D(u_source, (base + vec2(4.0,1.0)*sOff) / u_resolution).rgb;
+      cov3 += texture2D(u_source, (base + vec2(1.0,2.0)*sOff) / u_resolution).rgb;
+      cov3 += texture2D(u_source, (base + vec2(2.0,2.0)*sOff) / u_resolution).rgb;
+      cov3 += texture2D(u_source, (base + vec2(3.0,2.0)*sOff) / u_resolution).rgb;
+      cov3 += texture2D(u_source, (base + vec2(4.0,2.0)*sOff) / u_resolution).rgb;
+      cov3 += texture2D(u_source, (base + vec2(1.0,3.0)*sOff) / u_resolution).rgb;
+      cov3 += texture2D(u_source, (base + vec2(2.0,3.0)*sOff) / u_resolution).rgb;
+      cov3 += texture2D(u_source, (base + vec2(3.0,3.0)*sOff) / u_resolution).rgb;
+      cov3 += texture2D(u_source, (base + vec2(4.0,3.0)*sOff) / u_resolution).rgb;
+      cov3 += texture2D(u_source, (base + vec2(1.0,4.0)*sOff) / u_resolution).rgb;
+      cov3 += texture2D(u_source, (base + vec2(2.0,4.0)*sOff) / u_resolution).rgb;
+      cov3 += texture2D(u_source, (base + vec2(3.0,4.0)*sOff) / u_resolution).rgb;
+      cov3 += texture2D(u_source, (base + vec2(4.0,4.0)*sOff) / u_resolution).rgb;
+      cov3 /= 16.0;
+      float cov = max(max(cov3.r, cov3.g), cov3.b);
 
       if (u_noise > 0.0) {
         cov = clamp(cov + (noisehash(cellIdx.x, cellIdx.y) - 0.5) * u_noise, 0.0, 1.0);
@@ -217,8 +299,67 @@ import styles from "./HeroGlyphDither.module.scss";
       vec2 atlasUV = vec2((gi + sc.x) / u_glyphCount, sc.y);
       float mask = texture2D(u_atlas, atlasUV).r;
 
-      vec3 col = u_bgColor + (u_textColor * br - u_bgColor) * mask;
+      vec3 chColor = cov3 / max(cov, 0.0001);
+      vec3 col = u_bgColor + (u_textColor * chColor * br - u_bgColor) * mask;
       gl_FragColor = vec4(col, 1.0);
+    }
+  `;
+
+  // ─── GLSL — Ripple pre-pass ───────────────────────────────────────────────
+  // Suma analítica de N pulsos vivos. Sin simulación, sin reflexiones.
+
+  const RIPPLE_LOOP = `
+    vec2 disp = vec2(0.0);
+    for (int i = 0; i < 16; i++) {
+      if (i >= u_rippleCount) break;
+      vec4 r = u_ripples[i];
+      vec2 vel = u_rippleVel[i];
+      vec2 to = uv - r.xy;
+      float d = length(to);
+      float pulse = exp(-(d * d) / max(u_thickness * u_thickness, 1e-6));
+      float lifeT = clamp(r.z / u_lifetime, 0.0, 1.0);
+      float decay = lifeT >= 1.0 ? 0.0 : pow(1.0 - lifeT, 2.0);
+      // -to/d apunta HACIA el centro → al sumar al uv, muestreamos de un punto
+      // más cercano al centro → imagen empujada HACIA AFUERA (lente divergente).
+      vec2 dirRadial = d > 0.0001 ? -to / d : vec2(0.0);
+      vec2 combined = mix(dirRadial, vel, u_directionality);
+      // Lóbulos angulares (rompe simetría esférica). Fase determinista por posición.
+      float ang = atan(to.y, to.x);
+      float phase = fract(sin(dot(r.xy, vec2(127.1, 311.7))) * 43758.5453) * 6.28318;
+      float lobe = cos(ang * 3.0 + phase);
+      float irregFactor = 1.0 + u_irregularity * lobe;
+      disp += combined * pulse * decay * r.w * u_strength * irregFactor;
+    }
+  `;
+
+  // PRE_FRAG: fusión displace + chromatic. Cada canal RGB muestrea con offset distinto.
+  // En reposo (disp=0) o sin chromatic, R=G=B → dither posterior se comporta como antes.
+  const PRE_FRAG = `
+    precision highp float;
+    uniform sampler2D u_srcRaw;
+    uniform vec4 u_ripples[16];
+    uniform vec2 u_rippleVel[16];
+    uniform int u_rippleCount;
+    uniform float u_strength;
+    uniform float u_thickness;
+    uniform float u_lifetime;
+    uniform float u_chromatic;
+    uniform float u_directionality;
+    uniform float u_irregularity;
+    uniform vec2 u_resolution;
+
+    void main() {
+      vec2 uv = gl_FragCoord.xy / u_resolution;
+      ${RIPPLE_LOOP}
+      vec2 maxDispUV = vec2(7.0) / u_resolution;
+      disp = clamp(disp, -maxDispUV, maxDispUV);
+      vec2 dispR = disp * (1.0 + u_chromatic);
+      vec2 dispG = disp;
+      vec2 dispB = disp * (1.0 - u_chromatic);
+      float r = texture2D(u_srcRaw, uv + dispR).r;
+      float g = texture2D(u_srcRaw, uv + dispG).r;
+      float b = texture2D(u_srcRaw, uv + dispB).r;
+      gl_FragColor = vec4(r, g, b, 1.0);
     }
   `;
 
@@ -253,6 +394,7 @@ import styles from "./HeroGlyphDither.module.scss";
         preset && preset in GLYPH_PRESETS ? preset : DEFAULT_PARAMS.preset
       ) as Params["preset"],
       cellSize: numberParam(form, "cellSize"),
+      glyphScale: numberParam(form, "glyphScale"),
       fontScale: numberParam(form, "fontScale"),
       textColor: textColor || DEFAULT_PARAMS.textColor,
       backgroundColor: backgroundColor || DEFAULT_PARAMS.backgroundColor,
@@ -264,6 +406,16 @@ import styles from "./HeroGlyphDither.module.scss";
       thresholdBias: numberParam(form, "thresholdBias"),
       gamma: numberParam(form, "gamma"),
       noiseAmount: numberParam(form, "noiseAmount"),
+      rippleScale: numberParam(form, "rippleScale"),
+      rippleStrength: numberParam(form, "rippleStrength"),
+      rippleViscosity: numberParam(form, "rippleViscosity"),
+      rippleDecay: numberParam(form, "rippleDecay"),
+      rippleChromatic: numberParam(form, "rippleChromatic"),
+      rippleSpeed: numberParam(form, "rippleSpeed"),
+      rippleMomentum: numberParam(form, "rippleMomentum"),
+      rippleTrail: numberParam(form, "rippleTrail"),
+      rippleDirectionality: numberParam(form, "rippleDirectionality"),
+      rippleIrregularity: numberParam(form, "rippleIrregularity"),
     };
   }
 
@@ -300,9 +452,13 @@ import styles from "./HeroGlyphDither.module.scss";
     return s;
   }
 
-  function buildProgram(gl: WebGLRenderingContext): WebGLProgram | null {
-    const vert = compileShader(gl, gl.VERTEX_SHADER, VERT_SRC);
-    const frag = compileShader(gl, gl.FRAGMENT_SHADER, FRAG_SRC);
+  function buildProgramFromSrc(
+    gl: WebGLRenderingContext,
+    vs: string,
+    fs: string,
+  ): WebGLProgram | null {
+    const vert = compileShader(gl, gl.VERTEX_SHADER, vs);
+    const frag = compileShader(gl, gl.FRAGMENT_SHADER, fs);
     if (!vert || !frag) return null;
     const prog = gl.createProgram()!;
     gl.attachShader(prog, vert);
@@ -338,6 +494,40 @@ import styles from "./HeroGlyphDither.module.scss";
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
   }
 
+  type FBO = { fbo: WebGLFramebuffer; tex: WebGLTexture; w: number; h: number };
+
+  function makeFBO(gl: WebGLRenderingContext, w: number, h: number): FBO | null {
+    const tex = gl.createTexture();
+    const fbo = gl.createFramebuffer();
+    if (!tex || !fbo) return null;
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    if (status !== gl.FRAMEBUFFER_COMPLETE) {
+      gl.deleteTexture(tex);
+      gl.deleteFramebuffer(fbo);
+      return null;
+    }
+    return { fbo, tex, w, h };
+  }
+
+  function resizeFBO(gl: WebGLRenderingContext, fbo: FBO, w: number, h: number): FBO {
+    if (fbo.w === w && fbo.h === h) return fbo;
+    gl.bindTexture(gl.TEXTURE_2D, fbo.tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    fbo.w = w;
+    fbo.h = h;
+    return fbo;
+  }
+
   // ─── Canvas rendering ─────────────────────────────────────────────────────
 
   function renderSource(
@@ -367,7 +557,7 @@ import styles from "./HeroGlyphDither.module.scss";
     lines.forEach((line, i) => ctx.fillText(line, w * 0.5, startY + i * lineHeight));
   }
 
-  function buildAtlas(glyphs: string, cellSize: number): HTMLCanvasElement {
+  function buildAtlas(glyphs: string, cellSize: number, glyphScale: number): HTMLCanvasElement {
     const n = glyphs.length;
     const c = document.createElement("canvas");
     c.width = Math.max(1, n * cellSize);
@@ -378,9 +568,15 @@ import styles from "./HeroGlyphDither.module.scss";
     ctx.fillStyle = "#fff";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = `${Math.round(cellSize * 0.85)}px "Geist Mono","SF Mono",Monaco,monospace`;
+    ctx.font = `${Math.max(1, Math.round(cellSize * glyphScale))}px "Geist Mono","SF Mono",Monaco,monospace`;
     for (let i = 0; i < n; i++) {
+      // Clip per-cell para que glyphs > cellSize no se derramen a la celda vecina
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(i * cellSize, 0, cellSize, cellSize);
+      ctx.clip();
       ctx.fillText(glyphs[i], i * cellSize + cellSize * 0.5, cellSize * 0.5);
+      ctx.restore();
     }
     return c;
   }
@@ -395,125 +591,359 @@ import styles from "./HeroGlyphDither.module.scss";
     const copyButton = root?.querySelector<HTMLButtonElement>("[data-copy-params]");
     if (!root || !glCanvas || !form || !toggle || root.dataset.bound === "true") return;
 
-    const gl = glCanvas.getContext("webgl");
+    const gl = glCanvas.getContext("webgl", { premultipliedAlpha: false });
     if (!gl) {
       console.warn("WebGL not supported");
       return;
     }
 
-    const prog = buildProgram(gl);
-    if (!prog) return;
-    gl.useProgram(prog);
+    // ── Programs ────────────────────────────────────────────────────────────
+    const ditherProg = buildProgramFromSrc(gl, VERT_SRC, FRAG_SRC);
+    const dispProg = buildProgramFromSrc(gl, VERT_SRC, PRE_FRAG);
+    if (!ditherProg || !dispProg) return;
 
-    // Full-screen quad
-    const buf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    // Full-screen quad — shared by all programs
+    const quadBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
     gl.bufferData(
       gl.ARRAY_BUFFER,
       new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
       gl.STATIC_DRAW,
     );
-    const posLoc = gl.getAttribLocation(prog, "a_position");
-    gl.enableVertexAttribArray(posLoc);
-    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
 
-    // Textures — source on unit 0, atlas on unit 1
-    const srcTex = makeTexture(gl)!;
+    function bindQuad(prog: WebGLProgram) {
+      const loc = gl!.getAttribLocation(prog, "a_position");
+      gl!.bindBuffer(gl!.ARRAY_BUFFER, quadBuf);
+      gl!.enableVertexAttribArray(loc);
+      gl!.vertexAttribPointer(loc, 2, gl!.FLOAT, false, 0, 0);
+    }
+
+    // Texture unit assignment:
+    //   0 → u_source (dither)   — bound just before dither draw (preDither.tex o srcRaw)
+    //   1 → u_atlas (dither)
+    //   2 → u_srcRaw (pre-pass)
+    const srcRawTex = makeTexture(gl)!;
     const atlasTex = makeTexture(gl)!;
-    gl.uniform1i(gl.getUniformLocation(prog, "u_source"), 0);
-    gl.uniform1i(gl.getUniformLocation(prog, "u_atlas"), 1);
 
-    // Cache uniform locations
-    const uLoc = {
-      res: gl.getUniformLocation(prog, "u_resolution"),
-      cell: gl.getUniformLocation(prog, "u_cellSize"),
-      glyphs: gl.getUniformLocation(prog, "u_glyphCount"),
-      text: gl.getUniformLocation(prog, "u_textColor"),
-      bg: gl.getUniformLocation(prog, "u_bgColor"),
-      contrast: gl.getUniformLocation(prog, "u_contrast"),
-      gamma: gl.getUniformLocation(prog, "u_gamma"),
-      bias: gl.getUniformLocation(prog, "u_bias"),
-      edge: gl.getUniformLocation(prog, "u_edgeSoftness"),
-      fg: gl.getUniformLocation(prog, "u_foreground"),
-      mid: gl.getUniformLocation(prog, "u_midtone"),
-      bgOp: gl.getUniformLocation(prog, "u_background"),
-      noise: gl.getUniformLocation(prog, "u_noise"),
+    gl.useProgram(ditherProg);
+    bindQuad(ditherProg);
+    gl.uniform1i(gl.getUniformLocation(ditherProg, "u_source"), 0);
+    gl.uniform1i(gl.getUniformLocation(ditherProg, "u_atlas"), 1);
+
+    const dLoc = {
+      res: gl.getUniformLocation(ditherProg, "u_resolution"),
+      cell: gl.getUniformLocation(ditherProg, "u_cellSize"),
+      glyphs: gl.getUniformLocation(ditherProg, "u_glyphCount"),
+      text: gl.getUniformLocation(ditherProg, "u_textColor"),
+      bg: gl.getUniformLocation(ditherProg, "u_bgColor"),
+      contrast: gl.getUniformLocation(ditherProg, "u_contrast"),
+      gamma: gl.getUniformLocation(ditherProg, "u_gamma"),
+      bias: gl.getUniformLocation(ditherProg, "u_bias"),
+      edge: gl.getUniformLocation(ditherProg, "u_edgeSoftness"),
+      fg: gl.getUniformLocation(ditherProg, "u_foreground"),
+      mid: gl.getUniformLocation(ditherProg, "u_midtone"),
+      bgOp: gl.getUniformLocation(ditherProg, "u_background"),
+      noise: gl.getUniformLocation(ditherProg, "u_noise"),
     };
 
+    const dispLoc = {
+      srcRaw: gl.getUniformLocation(dispProg, "u_srcRaw"),
+      ripples: gl.getUniformLocation(dispProg, "u_ripples"),
+      vel: gl.getUniformLocation(dispProg, "u_rippleVel"),
+      count: gl.getUniformLocation(dispProg, "u_rippleCount"),
+      strength: gl.getUniformLocation(dispProg, "u_strength"),
+      thickness: gl.getUniformLocation(dispProg, "u_thickness"),
+      lifetime: gl.getUniformLocation(dispProg, "u_lifetime"),
+      chromatic: gl.getUniformLocation(dispProg, "u_chromatic"),
+      directionality: gl.getUniformLocation(dispProg, "u_directionality"),
+      irregularity: gl.getUniformLocation(dispProg, "u_irregularity"),
+      res: gl.getUniformLocation(dispProg, "u_resolution"),
+    };
+    gl.useProgram(dispProg);
+    gl.uniform1i(dispLoc.srcRaw, 2);
+
+    // ── State ───────────────────────────────────────────────────────────────
     const sourceCanvas = document.createElement("canvas");
     let atlasKey = "";
-    let frame = 0;
-    let timer = 0;
+    let lastW = 0;
+    let lastH = 0;
+    let cachedParams: Params = { ...DEFAULT_PARAMS };
+    let raf = 0;
+    let pendingKickFrames = 0;
+    let displaced: FBO | null = null;
+    let rippleAvailable = false;
+
+    // Pulsos
+    type Ripple = { x: number; y: number; bornAt: number; amp: number; vx: number; vy: number };
+    const ripples: Ripple[] = [];
+    const ripplePack = new Float32Array(MAX_RIPPLES * 4);
+    const rippleVelPack = new Float32Array(MAX_RIPPLES * 2);
+    let lastRippleX = 0;
+    let lastRippleY = 0;
+    let lastRippleAt = 0;
+    let prevMouseX = -1;
+    let prevMouseY = -1;
 
     applyParams(form, DEFAULT_PARAMS);
 
-    function render() {
-      const params = getParams(form!);
-      const lines = getHeadlineLines();
+    function rippleParams() {
+      const p = cachedParams;
+      const trail = Math.max(0, Math.min(1, p.rippleTrail / 100));
+      return {
+        strength: (p.rippleStrength / 100) * 0.025,
+        thickness: Math.max(0.005, 0.04 - (p.rippleScale / 100) * 0.025),
+        lifetime: (0.2 + (p.rippleViscosity / 100) * 0.4) * (1 + trail * 2),
+        chromatic: Math.min(1.5, (p.rippleChromatic / 100) * 1.0),
+        directionality: Math.max(0, Math.min(1, p.rippleDirectionality / 100)),
+        irregularity: Math.max(0, Math.min(1, p.rippleIrregularity / 100)),
+        minDistancePx: MIN_DISTANCE_PX * (1 - trail * 0.7),
+        minIntervalMs: MIN_INTERVAL_MS * (1 - trail * 0.7),
+      };
+    }
+
+    function ensureSize(): boolean {
       const rect = root!.getBoundingClientRect();
       const w = Math.floor(rect.width);
       const h = Math.floor(rect.height);
-      if (w <= 0 || h <= 0) return;
-
+      if (w <= 0 || h <= 0) return false;
       if (glCanvas!.width !== w || glCanvas!.height !== h) {
         glCanvas!.width = w;
         glCanvas!.height = h;
       }
+      lastW = w;
+      lastH = h;
 
+      if (!displaced) {
+        displaced = makeFBO(gl!, w, h);
+        rippleAvailable = !!displaced;
+      } else {
+        displaced = resizeFBO(gl!, displaced, w, h);
+      }
+      return true;
+    }
+
+    function uploadSource() {
+      const lines = getHeadlineLines();
       const headline = document.querySelector<HTMLElement>("[data-hero-section] h1");
       const hs = headline ? getComputedStyle(headline) : null;
       const fontFamily = hs?.fontFamily || `"Geist Variable", system-ui, sans-serif`;
       const fontWeight = hs?.fontWeight || "400";
       const computedFontSize = hs ? parseFloat(hs.fontSize) : 64;
+      renderSource(
+        sourceCanvas,
+        lines,
+        lastW,
+        lastH,
+        fontFamily,
+        fontWeight,
+        computedFontSize,
+        cachedParams.fontScale,
+      );
+      uploadTexture(gl!, srcRawTex, 2, sourceCanvas);
+      return computedFontSize;
+    }
 
-      // Scale cellSize proportionally to font size so the cells-per-character
-      // ratio stays constant across viewports (cellSize=6 is calibrated for ~100px font)
+    function ensureAtlas(effectiveCellSize: number) {
+      const glyphs = GLYPH_PRESETS[cachedParams.preset] || GLYPH_PRESETS.default;
+      const newAtlasKey = `${cachedParams.preset}:${effectiveCellSize}:${cachedParams.glyphScale}`;
+      if (newAtlasKey !== atlasKey) {
+        const atlas = buildAtlas(glyphs, effectiveCellSize, cachedParams.glyphScale);
+        uploadTexture(gl!, atlasTex, 1, atlas);
+        atlasKey = newAtlasKey;
+      }
+      return glyphs;
+    }
+
+    function packRipples(now: number) {
+      // Filter dead in-place
+      const lifetime = rippleParams().lifetime;
+      let w = 0;
+      for (let i = 0; i < ripples.length; i++) {
+        const age = (now - ripples[i].bornAt) / 1000;
+        if (age < lifetime) {
+          if (w !== i) ripples[w] = ripples[i];
+          w++;
+        }
+      }
+      ripples.length = w;
+      // Pack
+      ripplePack.fill(0);
+      rippleVelPack.fill(0);
+      for (let i = 0; i < ripples.length && i < MAX_RIPPLES; i++) {
+        const r = ripples[i];
+        const age = (now - r.bornAt) / 1000;
+        ripplePack[i * 4 + 0] = r.x;
+        ripplePack[i * 4 + 1] = r.y;
+        ripplePack[i * 4 + 2] = age;
+        ripplePack[i * 4 + 3] = r.amp;
+        rippleVelPack[i * 2 + 0] = r.vx;
+        rippleVelPack[i * 2 + 1] = r.vy;
+      }
+    }
+
+    function setRippleUniforms() {
+      const rp = rippleParams();
+      gl!.uniform4fv(dispLoc.ripples, ripplePack);
+      gl!.uniform2fv(dispLoc.vel, rippleVelPack);
+      gl!.uniform1i(dispLoc.count, ripples.length);
+      gl!.uniform1f(dispLoc.strength, rp.strength);
+      gl!.uniform1f(dispLoc.thickness, rp.thickness);
+      gl!.uniform1f(dispLoc.lifetime, rp.lifetime);
+      gl!.uniform1f(dispLoc.chromatic, rp.chromatic);
+      gl!.uniform1f(dispLoc.directionality, rp.directionality);
+      gl!.uniform1f(dispLoc.irregularity, rp.irregularity);
+    }
+
+    function runPrePass() {
+      if (!displaced) return;
+      gl!.useProgram(dispProg!);
+      bindQuad(dispProg!);
+      gl!.bindFramebuffer(gl!.FRAMEBUFFER, displaced.fbo);
+      gl!.viewport(0, 0, lastW, lastH);
+      gl!.activeTexture(gl!.TEXTURE2);
+      gl!.bindTexture(gl!.TEXTURE_2D, srcRawTex);
+      gl!.uniform2f(dispLoc.res, lastW, lastH);
+      setRippleUniforms();
+      gl!.drawArrays(gl!.TRIANGLE_STRIP, 0, 4);
+    }
+
+    function runDither(sourceTex: WebGLTexture) {
+      const params = cachedParams;
+      const headline = document.querySelector<HTMLElement>("[data-hero-section] h1");
+      const computedFontSize = headline ? parseFloat(getComputedStyle(headline).fontSize) : 64;
       const REFERENCE_FONT_SIZE = 100;
       const effectiveCellSize = Math.max(
         2,
         Math.round(params.cellSize * (computedFontSize * params.fontScale) / REFERENCE_FONT_SIZE),
       );
+      const glyphs = ensureAtlas(effectiveCellSize);
 
-      renderSource(sourceCanvas, lines, w, h, fontFamily, fontWeight, computedFontSize, params.fontScale);
-      uploadTexture(gl!, srcTex, 0, sourceCanvas);
+      gl!.useProgram(ditherProg!);
+      bindQuad(ditherProg!);
+      gl!.bindFramebuffer(gl!.FRAMEBUFFER, null);
+      gl!.viewport(0, 0, lastW, lastH);
 
-      const glyphs = GLYPH_PRESETS[params.preset] || GLYPH_PRESETS.default;
-      const newAtlasKey = `${params.preset}:${effectiveCellSize}`;
-      if (newAtlasKey !== atlasKey) {
-        const atlas = buildAtlas(glyphs, effectiveCellSize);
-        uploadTexture(gl!, atlasTex, 1, atlas);
-        atlasKey = newAtlasKey;
-      }
+      gl!.activeTexture(gl!.TEXTURE0);
+      gl!.bindTexture(gl!.TEXTURE_2D, sourceTex);
+      gl!.activeTexture(gl!.TEXTURE1);
+      gl!.bindTexture(gl!.TEXTURE_2D, atlasTex);
 
-      gl!.viewport(0, 0, w, h);
-      gl!.uniform2f(uLoc.res, w, h);
-      gl!.uniform1f(uLoc.cell, effectiveCellSize);
-      gl!.uniform1f(uLoc.glyphs, glyphs.length);
-      gl!.uniform3f(uLoc.text, ...parseHex(params.textColor));
-      gl!.uniform3f(uLoc.bg, ...parseHex(params.backgroundColor));
-      gl!.uniform1f(uLoc.contrast, params.contrast);
-      gl!.uniform1f(uLoc.gamma, params.gamma);
-      gl!.uniform1f(uLoc.bias, params.thresholdBias);
-      gl!.uniform1f(uLoc.edge, params.edgeSoftness);
-      gl!.uniform1f(uLoc.fg, params.foregroundBrightness);
-      gl!.uniform1f(uLoc.mid, params.midtoneBrightness);
-      gl!.uniform1f(uLoc.bgOp, params.backgroundOpacity);
-      gl!.uniform1f(uLoc.noise, params.noiseAmount);
+      gl!.uniform2f(dLoc.res, lastW, lastH);
+      gl!.uniform1f(dLoc.cell, effectiveCellSize);
+      gl!.uniform1f(dLoc.glyphs, glyphs.length);
+      gl!.uniform3f(dLoc.text, ...parseHex(params.textColor));
+      gl!.uniform3f(dLoc.bg, ...parseHex(params.backgroundColor));
+      gl!.uniform1f(dLoc.contrast, params.contrast);
+      gl!.uniform1f(dLoc.gamma, params.gamma);
+      gl!.uniform1f(dLoc.bias, params.thresholdBias);
+      gl!.uniform1f(dLoc.edge, params.edgeSoftness);
+      gl!.uniform1f(dLoc.fg, params.foregroundBrightness);
+      gl!.uniform1f(dLoc.mid, params.midtoneBrightness);
+      gl!.uniform1f(dLoc.bgOp, params.backgroundOpacity);
+      gl!.uniform1f(dLoc.noise, params.noiseAmount);
       gl!.drawArrays(gl!.TRIANGLE_STRIP, 0, 4);
-
-      root!.style.backgroundColor = params.backgroundColor;
-      const paramsOut = root!.querySelector<HTMLTextAreaElement>("[data-params-output]");
-      if (paramsOut) paramsOut.value = serializeParams(params);
-      updateOutputs(form!);
     }
 
-    const scheduleRender = () => {
-      if (frame) cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(render);
-    };
+    function frame() {
+      cachedParams = getParams(form!);
+      if (!ensureSize()) {
+        raf = 0;
+        return;
+      }
+      uploadSource();
+
+      const now = performance.now();
+      packRipples(now);
+
+      if (rippleAvailable) {
+        runPrePass();
+        runDither(displaced!.tex);
+      } else {
+        runDither(srcRawTex);
+      }
+
+      root!.style.backgroundColor = cachedParams.backgroundColor;
+      const paramsOut = root!.querySelector<HTMLTextAreaElement>("[data-params-output]");
+      if (paramsOut) paramsOut.value = serializeParams(cachedParams);
+      updateOutputs(form!);
+
+      if (pendingKickFrames > 0) pendingKickFrames--;
+      if (ripples.length > 0 || pendingKickFrames > 0) {
+        raf = requestAnimationFrame(frame);
+      } else {
+        raf = 0;
+      }
+    }
+
+    function kick(frames: number = 2) {
+      if (frames > pendingKickFrames) pendingKickFrames = frames;
+      if (!raf) raf = requestAnimationFrame(frame);
+    }
+
+    // ── Mouse → ripple injection ────────────────────────────────────────────
+    function onMouseMove(e: MouseEvent) {
+      if (!rippleAvailable) return;
+      const rect = root!.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const now = performance.now();
+
+      let dx = 0;
+      let dy = 0;
+      let mag = 0;
+      if (prevMouseX >= 0) {
+        dx = x - prevMouseX;
+        dy = y - prevMouseY;
+        mag = Math.hypot(dx, dy);
+      }
+      prevMouseX = x;
+      prevMouseY = y;
+
+      if (mag < 0.5) return;
+
+      const rp = rippleParams();
+      const distFromLast =
+        lastRippleAt === 0 ? Infinity : Math.hypot(x - lastRippleX, y - lastRippleY);
+      const dtFromLast = now - lastRippleAt;
+      const shouldEmit =
+        lastRippleAt === 0 ||
+        distFromLast >= rp.minDistancePx ||
+        dtFromLast >= rp.minIntervalMs;
+      if (!shouldEmit) return;
+
+      const momentumFactor = (cachedParams.rippleMomentum / 100) * 3.0;
+      const amp = Math.max(0.05, Math.min(1, mag * momentumFactor * 0.01));
+      const u = Math.max(0, Math.min(1, x / Math.max(1, rect.width)));
+      // gl_FragCoord Y origin is bottom-left; CSS y grows downward → flip
+      const v = Math.max(0, Math.min(1, 1 - y / Math.max(1, rect.height)));
+      // Velocidad unitaria del ratón. CSS y crece hacia abajo, GLSL hacia arriba → invertir vy.
+      const invMag = mag > 0 ? 1 / mag : 0;
+      const vx = dx * invMag;
+      const vy = -dy * invMag;
+
+      if (ripples.length >= MAX_RIPPLES) ripples.shift();
+      ripples.push({ x: u, y: v, bornAt: now, amp, vx, vy });
+      lastRippleX = x;
+      lastRippleY = y;
+      lastRippleAt = now;
+
+      if (!raf) raf = requestAnimationFrame(frame);
+    }
+
+    function onMouseLeave() {
+      prevMouseX = -1;
+      prevMouseY = -1;
+    }
+
+    root.addEventListener("mousemove", onMouseMove);
+    root.addEventListener("mouseleave", onMouseLeave);
+
+    // ── Knob interactions ───────────────────────────────────────────────────
+    let deferredTimer = 0;
+    const scheduleKick = () => kick();
     const scheduleDeferred = () => {
-      window.clearTimeout(timer);
-      timer = window.setTimeout(scheduleRender, 80);
+      window.clearTimeout(deferredTimer);
+      deferredTimer = window.setTimeout(scheduleKick, 80);
       updateOutputs(form!);
     };
 
@@ -524,7 +954,7 @@ import styles from "./HeroGlyphDither.module.scss";
     });
 
     form.addEventListener("input", scheduleDeferred);
-    form.addEventListener("change", scheduleRender);
+    form.addEventListener("change", scheduleKick);
 
     copyButton?.addEventListener("click", async () => {
       const value = serializeParams(getParams(form!));
@@ -538,9 +968,37 @@ import styles from "./HeroGlyphDither.module.scss";
       } catch {}
     });
 
+    const onResize = () => kick();
+    window.addEventListener("resize", onResize);
+    document.fonts.ready.then(scheduleKick);
+
+    // Initial paint
+    kick();
+
+    // ── Cleanup ─────────────────────────────────────────────────────────────
+    const cleanup = () => {
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+      window.clearTimeout(deferredTimer);
+      window.removeEventListener("resize", onResize);
+      root!.removeEventListener("mousemove", onMouseMove);
+      root!.removeEventListener("mouseleave", onMouseLeave);
+      gl!.deleteTexture(srcRawTex);
+      gl!.deleteTexture(atlasTex);
+      gl!.deleteProgram(ditherProg);
+      gl!.deleteProgram(dispProg);
+      gl!.deleteBuffer(quadBuf);
+      if (displaced) {
+        gl!.deleteTexture(displaced.tex);
+        gl!.deleteFramebuffer(displaced.fbo);
+      }
+      ripples.length = 0;
+      root!.dataset.bound = "";
+      document.removeEventListener("astro:before-swap", cleanup);
+    };
+    document.addEventListener("astro:before-swap", cleanup);
+
     root.dataset.bound = "true";
-    window.addEventListener("resize", scheduleRender);
-    document.fonts.ready.then(scheduleRender);
   }
 
   document.addEventListener("astro:page-load", initGlyphDither);
