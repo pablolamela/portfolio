@@ -146,16 +146,6 @@ import styles from "./HeroGlyphDither.module.scss";
       <output data-output-for="rippleIrregularity"></output>
     </label>
 
-    <label>
-      Color
-      <input name="textColor" type="color" />
-    </label>
-
-    <label>
-      Background
-      <input name="backgroundColor" type="color" />
-    </label>
-
     <button type="button" data-copy-params>Copy params</button>
     <textarea data-params-output readonly rows="7" spellcheck="false"></textarea>
   </form>
@@ -300,7 +290,8 @@ import styles from "./HeroGlyphDither.module.scss";
       float mask = texture2D(u_atlas, atlasUV).r;
 
       vec3 chColor = cov3 / max(cov, 0.0001);
-      vec3 col = u_bgColor + (u_textColor * chColor * br - u_bgColor) * mask;
+      vec3 colInside = mix(u_bgColor, u_textColor, clamp(br * chColor, 0.0, 1.0));
+      vec3 col = mix(u_bgColor, colInside, mask);
       gl_FragColor = vec4(col, 1.0);
     }
   `;
@@ -365,6 +356,33 @@ import styles from "./HeroGlyphDither.module.scss";
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
+  function getThemeColors(): { text: string; bg: string } {
+    const styles = getComputedStyle(document.documentElement);
+    const text = styles.getPropertyValue("--color-text").trim() || "#ffffff";
+    const bg = styles.getPropertyValue("--color-bg").trim() || "#000000";
+    return { text, bg };
+  }
+
+  function readMsVar(name: string, fallback: number): number {
+    const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    if (raw.endsWith("ms")) return parseFloat(raw);
+    if (raw.endsWith("s")) return parseFloat(raw) * 1000;
+    return fallback;
+  }
+
+  function easeOutCubic(t: number): number {
+    const k = 1 - t;
+    return 1 - k * k * k;
+  }
+
+  function lerp3(
+    a: [number, number, number],
+    b: [number, number, number],
+    t: number,
+  ): [number, number, number] {
+    return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+  }
+
   function parseHex(hex: string): [number, number, number] {
     const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return r
@@ -385,10 +403,7 @@ import styles from "./HeroGlyphDither.module.scss";
 
   function getParams(form: HTMLFormElement): Params {
     const preset = (form.elements.namedItem("preset") as HTMLSelectElement | null)?.value;
-    const textColor = (form.elements.namedItem("textColor") as HTMLInputElement | null)?.value;
-    const backgroundColor = (
-      form.elements.namedItem("backgroundColor") as HTMLInputElement | null
-    )?.value;
+    const theme = getThemeColors();
     return {
       preset: (
         preset && preset in GLYPH_PRESETS ? preset : DEFAULT_PARAMS.preset
@@ -396,8 +411,8 @@ import styles from "./HeroGlyphDither.module.scss";
       cellSize: numberParam(form, "cellSize"),
       glyphScale: numberParam(form, "glyphScale"),
       fontScale: numberParam(form, "fontScale"),
-      textColor: textColor || DEFAULT_PARAMS.textColor,
-      backgroundColor: backgroundColor || DEFAULT_PARAMS.backgroundColor,
+      textColor: theme.text,
+      backgroundColor: theme.bg,
       edgeSoftness: numberParam(form, "edgeSoftness"),
       foregroundBrightness: numberParam(form, "foregroundBrightness"),
       midtoneBrightness: numberParam(form, "midtoneBrightness"),
@@ -671,6 +686,16 @@ import styles from "./HeroGlyphDither.module.scss";
     let raf = 0;
     let pendingKickFrames = 0;
     let displaced: FBO | null = null;
+
+    // Tween de colores del theme (sincronizado con la var --theme-transition-duration).
+    const THEME_TWEEN_MS = readMsVar("--theme-transition-duration", 220);
+    let currentTextRGB = parseHex(getThemeColors().text);
+    let currentBgRGB = parseHex(getThemeColors().bg);
+    let prevTextRGB: [number, number, number] = [...currentTextRGB] as [number, number, number];
+    let prevBgRGB: [number, number, number] = [...currentBgRGB] as [number, number, number];
+    let targetTextRGB: [number, number, number] = [...currentTextRGB] as [number, number, number];
+    let targetBgRGB: [number, number, number] = [...currentBgRGB] as [number, number, number];
+    let themeTweenStart = -Infinity;
     let rippleAvailable = false;
 
     // Pulsos
@@ -831,8 +856,8 @@ import styles from "./HeroGlyphDither.module.scss";
       gl!.uniform2f(dLoc.res, lastW, lastH);
       gl!.uniform1f(dLoc.cell, effectiveCellSize);
       gl!.uniform1f(dLoc.glyphs, glyphs.length);
-      gl!.uniform3f(dLoc.text, ...parseHex(params.textColor));
-      gl!.uniform3f(dLoc.bg, ...parseHex(params.backgroundColor));
+      gl!.uniform3f(dLoc.text, currentTextRGB[0], currentTextRGB[1], currentTextRGB[2]);
+      gl!.uniform3f(dLoc.bg, currentBgRGB[0], currentBgRGB[1], currentBgRGB[2]);
       gl!.uniform1f(dLoc.contrast, params.contrast);
       gl!.uniform1f(dLoc.gamma, params.gamma);
       gl!.uniform1f(dLoc.bias, params.thresholdBias);
@@ -855,6 +880,14 @@ import styles from "./HeroGlyphDither.module.scss";
       const now = performance.now();
       packRipples(now);
 
+      // Avanzar tween de tema.
+      const tweenT = themeTweenStart === -Infinity
+        ? 1
+        : Math.max(0, Math.min(1, (now - themeTweenStart) / THEME_TWEEN_MS));
+      const themeEased = easeOutCubic(tweenT);
+      currentTextRGB = lerp3(prevTextRGB, targetTextRGB, themeEased);
+      currentBgRGB = lerp3(prevBgRGB, targetBgRGB, themeEased);
+
       if (rippleAvailable) {
         runPrePass();
         runDither(displaced!.tex);
@@ -868,7 +901,8 @@ import styles from "./HeroGlyphDither.module.scss";
       updateOutputs(form!);
 
       if (pendingKickFrames > 0) pendingKickFrames--;
-      if (ripples.length > 0 || pendingKickFrames > 0) {
+      const themeAnimating = tweenT < 1;
+      if (ripples.length > 0 || pendingKickFrames > 0 || themeAnimating) {
         raf = requestAnimationFrame(frame);
       } else {
         raf = 0;
@@ -938,6 +972,30 @@ import styles from "./HeroGlyphDither.module.scss";
     root.addEventListener("mousemove", onMouseMove);
     root.addEventListener("mouseleave", onMouseLeave);
 
+    const themeObserver = new MutationObserver(() => {
+      const theme = getThemeColors();
+      const newText = parseHex(theme.text);
+      const newBg = parseHex(theme.bg);
+      if (
+        newText[0] === targetTextRGB[0] &&
+        newText[1] === targetTextRGB[1] &&
+        newText[2] === targetTextRGB[2] &&
+        newBg[0] === targetBgRGB[0] &&
+        newBg[1] === targetBgRGB[1] &&
+        newBg[2] === targetBgRGB[2]
+      ) return;
+      prevTextRGB = [...currentTextRGB] as [number, number, number];
+      prevBgRGB = [...currentBgRGB] as [number, number, number];
+      targetTextRGB = newText;
+      targetBgRGB = newBg;
+      themeTweenStart = performance.now();
+      if (!raf) raf = requestAnimationFrame(frame);
+    });
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme", "data-theme-mode"],
+    });
+
     // ── Knob interactions ───────────────────────────────────────────────────
     let deferredTimer = 0;
     const scheduleKick = () => kick();
@@ -983,6 +1041,7 @@ import styles from "./HeroGlyphDither.module.scss";
       window.removeEventListener("resize", onResize);
       root!.removeEventListener("mousemove", onMouseMove);
       root!.removeEventListener("mouseleave", onMouseLeave);
+      themeObserver.disconnect();
       gl!.deleteTexture(srcRawTex);
       gl!.deleteTexture(atlasTex);
       gl!.deleteProgram(ditherProg);

@@ -8,8 +8,16 @@ type ThemeMode = "system" | "light" | "dark";
 const STORAGE_KEY = "theme";
 const THEME_ORDER: readonly ThemeMode[] = ["system", "light", "dark"] as const;
 const TRANSITION_CLASS = "theme-transition";
-const TRANSITION_DURATION_MS = 320;
+const TRANSITION_DURATION_FALLBACK_MS = 320;
 const WIDTH_TWEEN_DURATION = 0.32;
+
+function readMsVar(name: string, fallback: number): number {
+  if (typeof document === "undefined") return fallback;
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  if (raw.endsWith("ms")) return parseFloat(raw);
+  if (raw.endsWith("s")) return parseFloat(raw) * 1000;
+  return fallback;
+}
 
 function isThemeMode(value: string | null | undefined): value is ThemeMode {
   return value === "system" || value === "light" || value === "dark";
@@ -93,7 +101,7 @@ export default function ThemeSwitch() {
       window.clearTimeout(transitionTimeoutRef.current);
       transitionTimeoutRef.current = window.setTimeout(() => {
         document.documentElement.classList.remove(TRANSITION_CLASS);
-      }, TRANSITION_DURATION_MS);
+      }, readMsVar("--theme-transition-class-duration", TRANSITION_DURATION_FALLBACK_MS));
     }
 
     document.documentElement.setAttribute("data-theme-mode", mode);

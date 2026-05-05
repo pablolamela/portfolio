@@ -85,6 +85,11 @@
   --space-body-x: #{use-space("s5")}; // 24px
 
   --hero-h: 50vh;
+
+  // Theme transition (consumido por CSS, ThemeSwitch.tsx y HeroGlyphDither.astro)
+  --theme-transition-duration: 220ms;
+  --theme-transition-easing: ease;
+  --theme-transition-class-duration: 320ms;
 }
 
 // Mobile overrides
@@ -139,14 +144,14 @@ body {
   html.theme-transition *::before,
   html.theme-transition *::after {
     transition:
-      background-color 220ms ease,
-      color 220ms ease,
-      border-color 220ms ease,
-      outline-color 220ms ease,
-      text-decoration-color 220ms ease,
-      fill 220ms ease,
-      stroke 220ms ease,
-      box-shadow 220ms ease !important;
+      background-color var(--theme-transition-duration) var(--theme-transition-easing),
+      color var(--theme-transition-duration) var(--theme-transition-easing),
+      border-color var(--theme-transition-duration) var(--theme-transition-easing),
+      outline-color var(--theme-transition-duration) var(--theme-transition-easing),
+      text-decoration-color var(--theme-transition-duration) var(--theme-transition-easing),
+      fill var(--theme-transition-duration) var(--theme-transition-easing),
+      stroke var(--theme-transition-duration) var(--theme-transition-easing),
+      box-shadow var(--theme-transition-duration) var(--theme-transition-easing) !important;
   }
 }
 
