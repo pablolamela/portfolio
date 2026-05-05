@@ -1,7 +1,20 @@
 ---
 import Base from "@/layouts/Base.astro";
+import Hero from "@/components/layout/Hero.astro";
+import HeroBackground from "@/components/layout/HeroBackground.astro";
+import HeroBackgroundNative from "@/components/layout/HeroBackgroundNative.astro";
 ---
 
 <Base>
-  <main></main>
+  <main class="home-main">
+    <Hero />
+    <HeroBackground />
+    <HeroBackgroundNative />
+  </main>
 </Base>
+
+<style>
+  .home-main {
+    padding-top: 0;
+  }
+</style>

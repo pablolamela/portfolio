@@ -1,0 +1,111 @@
+.root {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #000;
+}
+
+.source {
+  display: none;
+}
+
+.grid {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  font-family: "Geist Mono", "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", monospace;
+
+  span {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    white-space: pre;
+    user-select: none;
+  }
+}
+
+.toggle {
+  position: absolute;
+  z-index: 3;
+  right: var(--space-body-x);
+  bottom: calc(var(--nav-h) + var(--space-s));
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  padding: 0.55rem 0.7rem;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font-family: "Geist Mono", monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+.controls {
+  position: absolute;
+  z-index: 3;
+  right: var(--space-body-x);
+  bottom: calc(var(--nav-h) + 3.35rem);
+  display: grid;
+  width: min(22rem, calc(100vw - var(--space-body-x) * 2));
+  max-height: min(36rem, 72svh);
+  gap: 0.65rem;
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 0.85rem;
+  background: rgba(0, 0, 0, 0.86);
+  color: #fff;
+  font-family: "Geist Mono", monospace;
+  font-size: 0.68rem;
+
+  &[hidden] {
+    display: none;
+  }
+
+  label {
+    display: grid;
+    grid-template-columns: 5.5rem 1fr 2.4rem;
+    align-items: center;
+    gap: 0.55rem;
+  }
+
+  select,
+  input,
+  textarea,
+  button {
+    min-width: 0;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: #050505;
+    color: #fff;
+    font: inherit;
+  }
+
+  input[type="color"] {
+    width: 100%;
+    height: 1.7rem;
+    padding: 0;
+  }
+
+  output {
+    color: rgba(255, 255, 255, 0.64);
+    text-align: right;
+  }
+
+  button,
+  textarea {
+    grid-column: 1 / -1;
+  }
+
+  button {
+    padding: 0.55rem;
+    cursor: pointer;
+  }
+
+  textarea {
+    width: 100%;
+    resize: vertical;
+    padding: 0.55rem;
+    color: rgba(255, 255, 255, 0.74);
+  }
+}

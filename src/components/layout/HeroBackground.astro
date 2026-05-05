@@ -1,0 +1,97 @@
+---
+import styles from "./HeroBackground.module.scss";
+---
+
+<div
+  class={styles.canvas}
+  data-hero-bg
+  data-us-project-src="/hero-background.json"
+  data-us-scale="1"
+  data-us-dpi="1.5"
+  data-us-fps="60"
+  aria-hidden="true"
+></div>
+
+<script>
+  const SDK_URL = "https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v2.1.11/dist/unicornStudio.umd.js";
+  const SDK_FLAG = "__unicornStudioLoading";
+
+  type UnicornStudioGlobal = {
+    init: () => Promise<unknown> | unknown;
+    destroy?: () => void;
+    isInitialized?: boolean;
+  };
+
+  function loadSDK(): Promise<UnicornStudioGlobal> {
+    const w = window as unknown as Record<string, unknown>;
+    if (w.UnicornStudio && (w.UnicornStudio as UnicornStudioGlobal).init) {
+      return Promise.resolve(w.UnicornStudio as UnicornStudioGlobal);
+    }
+    if (w[SDK_FLAG]) return w[SDK_FLAG] as Promise<UnicornStudioGlobal>;
+
+    const promise = new Promise<UnicornStudioGlobal>((resolve, reject) => {
+      const existing = document.querySelector<HTMLScriptElement>(
+        'script[data-unicorn-sdk="true"]',
+      );
+      if (existing) {
+        existing.addEventListener("load", () => {
+          const sdk = (window as unknown as Record<string, unknown>).UnicornStudio;
+          if (sdk) resolve(sdk as UnicornStudioGlobal);
+          else reject(new Error("UnicornStudio missing after load"));
+        });
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = SDK_URL;
+      script.async = true;
+      script.dataset.unicornSdk = "true";
+      script.onload = () => {
+        const sdk = (window as unknown as Record<string, unknown>).UnicornStudio;
+        if (sdk) resolve(sdk as UnicornStudioGlobal);
+        else reject(new Error("UnicornStudio missing after load"));
+      };
+      script.onerror = () => reject(new Error("Failed to load Unicorn Studio SDK"));
+      document.head.appendChild(script);
+    });
+
+    w[SDK_FLAG] = promise;
+    return promise;
+  }
+
+  async function init() {
+    const el = document.querySelector<HTMLElement>("[data-hero-bg]");
+    if (!el) return;
+    if (el.dataset.bgBound === "true") return;
+    el.dataset.bgBound = "true";
+
+    try {
+      const sdk = await loadSDK();
+      await sdk.init();
+      console.log("[HeroBackground] Unicorn init OK");
+    } catch (err) {
+      console.warn("[HeroBackground] init failed", err);
+      delete el.dataset.bgBound;
+    }
+  }
+
+  function teardown() {
+    const sdk = (window as unknown as Record<string, unknown>).UnicornStudio as
+      | UnicornStudioGlobal
+      | undefined;
+    if (sdk?.destroy) {
+      try {
+        sdk.destroy();
+      } catch {}
+    }
+    const el = document.querySelector<HTMLElement>("[data-hero-bg]");
+    if (el) delete el.dataset.bgBound;
+  }
+
+  document.addEventListener("astro:page-load", init);
+  document.addEventListener("astro:before-swap", teardown);
+  if (document.readyState !== "loading") {
+    init();
+  } else {
+    document.addEventListener("DOMContentLoaded", init, { once: true });
+  }
+</script>
