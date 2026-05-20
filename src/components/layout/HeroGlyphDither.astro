@@ -212,6 +212,7 @@ import styles from "./HeroGlyphDither.module.scss";
     uniform float u_glyphCount;
     uniform vec3 u_textColor;
     uniform vec3 u_bgColor;
+    uniform vec3 u_accentColor;
     uniform float u_contrast;
     uniform float u_gamma;
     uniform float u_bias;
@@ -237,25 +238,25 @@ import styles from "./HeroGlyphDither.module.scss";
       vec2 base = cellIdx * u_cellSize;
       float sOff = u_cellSize / 5.0;
 
-      vec3 cov3 = vec3(0.0);
-      cov3 += texture2D(u_source, (base + vec2(1.0,1.0)*sOff) / u_resolution).rgb;
-      cov3 += texture2D(u_source, (base + vec2(2.0,1.0)*sOff) / u_resolution).rgb;
-      cov3 += texture2D(u_source, (base + vec2(3.0,1.0)*sOff) / u_resolution).rgb;
-      cov3 += texture2D(u_source, (base + vec2(4.0,1.0)*sOff) / u_resolution).rgb;
-      cov3 += texture2D(u_source, (base + vec2(1.0,2.0)*sOff) / u_resolution).rgb;
-      cov3 += texture2D(u_source, (base + vec2(2.0,2.0)*sOff) / u_resolution).rgb;
-      cov3 += texture2D(u_source, (base + vec2(3.0,2.0)*sOff) / u_resolution).rgb;
-      cov3 += texture2D(u_source, (base + vec2(4.0,2.0)*sOff) / u_resolution).rgb;
-      cov3 += texture2D(u_source, (base + vec2(1.0,3.0)*sOff) / u_resolution).rgb;
-      cov3 += texture2D(u_source, (base + vec2(2.0,3.0)*sOff) / u_resolution).rgb;
-      cov3 += texture2D(u_source, (base + vec2(3.0,3.0)*sOff) / u_resolution).rgb;
-      cov3 += texture2D(u_source, (base + vec2(4.0,3.0)*sOff) / u_resolution).rgb;
-      cov3 += texture2D(u_source, (base + vec2(1.0,4.0)*sOff) / u_resolution).rgb;
-      cov3 += texture2D(u_source, (base + vec2(2.0,4.0)*sOff) / u_resolution).rgb;
-      cov3 += texture2D(u_source, (base + vec2(3.0,4.0)*sOff) / u_resolution).rgb;
-      cov3 += texture2D(u_source, (base + vec2(4.0,4.0)*sOff) / u_resolution).rgb;
-      cov3 /= 16.0;
-      float cov = max(max(cov3.r, cov3.g), cov3.b);
+      vec2 cov2 = vec2(0.0);
+      cov2 += texture2D(u_source, (base + vec2(1.0,1.0)*sOff) / u_resolution).rg;
+      cov2 += texture2D(u_source, (base + vec2(2.0,1.0)*sOff) / u_resolution).rg;
+      cov2 += texture2D(u_source, (base + vec2(3.0,1.0)*sOff) / u_resolution).rg;
+      cov2 += texture2D(u_source, (base + vec2(4.0,1.0)*sOff) / u_resolution).rg;
+      cov2 += texture2D(u_source, (base + vec2(1.0,2.0)*sOff) / u_resolution).rg;
+      cov2 += texture2D(u_source, (base + vec2(2.0,2.0)*sOff) / u_resolution).rg;
+      cov2 += texture2D(u_source, (base + vec2(3.0,2.0)*sOff) / u_resolution).rg;
+      cov2 += texture2D(u_source, (base + vec2(4.0,2.0)*sOff) / u_resolution).rg;
+      cov2 += texture2D(u_source, (base + vec2(1.0,3.0)*sOff) / u_resolution).rg;
+      cov2 += texture2D(u_source, (base + vec2(2.0,3.0)*sOff) / u_resolution).rg;
+      cov2 += texture2D(u_source, (base + vec2(3.0,3.0)*sOff) / u_resolution).rg;
+      cov2 += texture2D(u_source, (base + vec2(4.0,3.0)*sOff) / u_resolution).rg;
+      cov2 += texture2D(u_source, (base + vec2(1.0,4.0)*sOff) / u_resolution).rg;
+      cov2 += texture2D(u_source, (base + vec2(2.0,4.0)*sOff) / u_resolution).rg;
+      cov2 += texture2D(u_source, (base + vec2(3.0,4.0)*sOff) / u_resolution).rg;
+      cov2 += texture2D(u_source, (base + vec2(4.0,4.0)*sOff) / u_resolution).rg;
+      cov2 /= 16.0;
+      float cov = max(cov2.x, cov2.y);
 
       if (u_noise > 0.0) {
         cov = clamp(cov + (noisehash(cellIdx.x, cellIdx.y) - 0.5) * u_noise, 0.0, 1.0);
@@ -289,8 +290,9 @@ import styles from "./HeroGlyphDither.module.scss";
       vec2 atlasUV = vec2((gi + sc.x) / u_glyphCount, sc.y);
       float mask = texture2D(u_atlas, atlasUV).r;
 
-      vec3 chColor = cov3 / max(cov, 0.0001);
-      vec3 colInside = mix(u_bgColor, u_textColor, clamp(br * chColor, 0.0, 1.0));
+      float fringeAmount = clamp((cov2.y - cov2.x) / max(cov, 0.0001), 0.0, 1.0);
+      vec3 baseColor = mix(u_textColor, u_accentColor, fringeAmount);
+      vec3 colInside = mix(u_bgColor, baseColor, clamp(br, 0.0, 1.0));
       vec3 col = mix(u_bgColor, colInside, mask);
       gl_FragColor = vec4(col, 1.0);
     }
@@ -344,23 +346,21 @@ import styles from "./HeroGlyphDither.module.scss";
       ${RIPPLE_LOOP}
       vec2 maxDispUV = vec2(7.0) / u_resolution;
       disp = clamp(disp, -maxDispUV, maxDispUV);
-      vec2 dispR = disp * (1.0 + u_chromatic);
-      vec2 dispG = disp;
-      vec2 dispB = disp * (1.0 - u_chromatic);
-      float r = texture2D(u_srcRaw, uv + dispR).r;
-      float g = texture2D(u_srcRaw, uv + dispG).r;
-      float b = texture2D(u_srcRaw, uv + dispB).r;
-      gl_FragColor = vec4(r, g, b, 1.0);
+      // R = main glyph, G = ghost (offset por cromática). B = 0.
+      float main = texture2D(u_srcRaw, uv + disp).r;
+      float ghost = texture2D(u_srcRaw, uv + disp * (1.0 + u_chromatic)).r;
+      gl_FragColor = vec4(main, ghost, 0.0, 1.0);
     }
   `;
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
-  function getThemeColors(): { text: string; bg: string } {
+  function getThemeColors(): { text: string; bg: string; accent: string } {
     const styles = getComputedStyle(document.documentElement);
     const text = styles.getPropertyValue("--color-text").trim() || "#ffffff";
     const bg = styles.getPropertyValue("--color-bg").trim() || "#000000";
-    return { text, bg };
+    const accent = styles.getPropertyValue("--color-accent").trim() || "#ffab6c";
+    return { text, bg, accent };
   }
 
   function readMsVar(name: string, fallback: number): number {
@@ -383,11 +383,21 @@ import styles from "./HeroGlyphDither.module.scss";
     return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
   }
 
-  function parseHex(hex: string): [number, number, number] {
-    const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return r
-      ? [parseInt(r[1], 16) / 255, parseInt(r[2], 16) / 255, parseInt(r[3], 16) / 255]
-      : [1, 1, 1];
+  function parseCssColor(value: string): [number, number, number] {
+    const v = value.trim();
+    const hex = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(v);
+    if (hex) {
+      return [
+        parseInt(hex[1], 16) / 255,
+        parseInt(hex[2], 16) / 255,
+        parseInt(hex[3], 16) / 255,
+      ];
+    }
+    const rgb = /rgba?\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)/i.exec(v);
+    if (rgb) {
+      return [parseFloat(rgb[1]) / 255, parseFloat(rgb[2]) / 255, parseFloat(rgb[3]) / 255];
+    }
+    return [1, 1, 1];
   }
 
   function getHeadlineLines(): string[] {
@@ -545,6 +555,24 @@ import styles from "./HeroGlyphDither.module.scss";
 
   // ─── Canvas rendering ─────────────────────────────────────────────────────
 
+  function wrapLine(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+    const words = text.split(/\s+/).filter(Boolean);
+    if (words.length === 0) return [];
+    const out: string[] = [];
+    let current = words[0];
+    for (let i = 1; i < words.length; i++) {
+      const candidate = `${current} ${words[i]}`;
+      if (ctx.measureText(candidate).width <= maxWidth) {
+        current = candidate;
+      } else {
+        out.push(current);
+        current = words[i];
+      }
+    }
+    out.push(current);
+    return out;
+  }
+
   function renderSource(
     canvas: HTMLCanvasElement,
     lines: string[],
@@ -563,13 +591,16 @@ import styles from "./HeroGlyphDither.module.scss";
     if (lines.length === 0 || computedFontSize <= 0) return;
     const fontSize = computedFontSize * fontScale;
     const lineHeight = fontSize * 0.92;
-    const totalH = (lines.length - 1) * lineHeight;
-    const startY = h * 0.5 - totalH * 0.5;
     ctx.fillStyle = "#fff";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
-    lines.forEach((line, i) => ctx.fillText(line, w * 0.5, startY + i * lineHeight));
+    const WRAP_INSET = 0.98;
+    const wrapped = lines.flatMap((line) => wrapLine(ctx, line, w * WRAP_INSET));
+    if (wrapped.length === 0) return;
+    const totalH = (wrapped.length - 1) * lineHeight;
+    const startY = h * 0.5 - totalH * 0.5;
+    wrapped.forEach((line, i) => ctx.fillText(line, w * 0.5, startY + i * lineHeight));
   }
 
   function buildAtlas(glyphs: string, cellSize: number, glyphScale: number): HTMLCanvasElement {
@@ -651,6 +682,7 @@ import styles from "./HeroGlyphDither.module.scss";
       glyphs: gl.getUniformLocation(ditherProg, "u_glyphCount"),
       text: gl.getUniformLocation(ditherProg, "u_textColor"),
       bg: gl.getUniformLocation(ditherProg, "u_bgColor"),
+      accent: gl.getUniformLocation(ditherProg, "u_accentColor"),
       contrast: gl.getUniformLocation(ditherProg, "u_contrast"),
       gamma: gl.getUniformLocation(ditherProg, "u_gamma"),
       bias: gl.getUniformLocation(ditherProg, "u_bias"),
@@ -689,12 +721,15 @@ import styles from "./HeroGlyphDither.module.scss";
 
     // Tween de colores del theme (sincronizado con la var --theme-transition-duration).
     const THEME_TWEEN_MS = readMsVar("--theme-transition-duration", 220);
-    let currentTextRGB = parseHex(getThemeColors().text);
-    let currentBgRGB = parseHex(getThemeColors().bg);
+    let currentTextRGB = parseCssColor(getThemeColors().text);
+    let currentBgRGB = parseCssColor(getThemeColors().bg);
+    let currentAccentRGB = parseCssColor(getThemeColors().accent);
     let prevTextRGB: [number, number, number] = [...currentTextRGB] as [number, number, number];
     let prevBgRGB: [number, number, number] = [...currentBgRGB] as [number, number, number];
+    let prevAccentRGB: [number, number, number] = [...currentAccentRGB] as [number, number, number];
     let targetTextRGB: [number, number, number] = [...currentTextRGB] as [number, number, number];
     let targetBgRGB: [number, number, number] = [...currentBgRGB] as [number, number, number];
+    let targetAccentRGB: [number, number, number] = [...currentAccentRGB] as [number, number, number];
     let themeTweenStart = -Infinity;
     let rippleAvailable = false;
 
@@ -858,6 +893,7 @@ import styles from "./HeroGlyphDither.module.scss";
       gl!.uniform1f(dLoc.glyphs, glyphs.length);
       gl!.uniform3f(dLoc.text, currentTextRGB[0], currentTextRGB[1], currentTextRGB[2]);
       gl!.uniform3f(dLoc.bg, currentBgRGB[0], currentBgRGB[1], currentBgRGB[2]);
+      gl!.uniform3f(dLoc.accent, currentAccentRGB[0], currentAccentRGB[1], currentAccentRGB[2]);
       gl!.uniform1f(dLoc.contrast, params.contrast);
       gl!.uniform1f(dLoc.gamma, params.gamma);
       gl!.uniform1f(dLoc.bias, params.thresholdBias);
@@ -887,6 +923,7 @@ import styles from "./HeroGlyphDither.module.scss";
       const themeEased = easeOutCubic(tweenT);
       currentTextRGB = lerp3(prevTextRGB, targetTextRGB, themeEased);
       currentBgRGB = lerp3(prevBgRGB, targetBgRGB, themeEased);
+      currentAccentRGB = lerp3(prevAccentRGB, targetAccentRGB, themeEased);
 
       if (rippleAvailable) {
         runPrePass();
@@ -974,20 +1011,26 @@ import styles from "./HeroGlyphDither.module.scss";
 
     const themeObserver = new MutationObserver(() => {
       const theme = getThemeColors();
-      const newText = parseHex(theme.text);
-      const newBg = parseHex(theme.bg);
+      const newText = parseCssColor(theme.text);
+      const newBg = parseCssColor(theme.bg);
+      const newAccent = parseCssColor(theme.accent);
       if (
         newText[0] === targetTextRGB[0] &&
         newText[1] === targetTextRGB[1] &&
         newText[2] === targetTextRGB[2] &&
         newBg[0] === targetBgRGB[0] &&
         newBg[1] === targetBgRGB[1] &&
-        newBg[2] === targetBgRGB[2]
+        newBg[2] === targetBgRGB[2] &&
+        newAccent[0] === targetAccentRGB[0] &&
+        newAccent[1] === targetAccentRGB[1] &&
+        newAccent[2] === targetAccentRGB[2]
       ) return;
       prevTextRGB = [...currentTextRGB] as [number, number, number];
       prevBgRGB = [...currentBgRGB] as [number, number, number];
+      prevAccentRGB = [...currentAccentRGB] as [number, number, number];
       targetTextRGB = newText;
       targetBgRGB = newBg;
+      targetAccentRGB = newAccent;
       themeTweenStart = performance.now();
       if (!raf) raf = requestAnimationFrame(frame);
     });
