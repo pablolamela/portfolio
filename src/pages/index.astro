@@ -1,19 +1,22 @@
 ---
 import Base from "@/layouts/Base.astro";
-import Hero from "@/components/layout/Hero.astro";
-import HeroBackground from "@/components/layout/HeroBackground.astro";
-import HeroBackgroundNative from "@/components/layout/HeroBackgroundNative.astro";
+import GlyphDither from "@/components/visuals/GlyphDither/GlyphDither.astro";
 ---
 
 <Base>
   <main class="home-main">
-    <Hero />
-    <HeroBackground />
+
   </main>
 </Base>
 
 <style>
   .home-main {
+    display: block;
     padding-top: 0;
+  }
+  .dither-frame {
+    width: 100vw;
+    height: 100svh;
+    margin-inline: calc(50% - 50vw);
   }
 </style>

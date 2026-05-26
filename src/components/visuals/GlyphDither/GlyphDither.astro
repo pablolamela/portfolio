@@ -1,154 +1,10 @@
 ---
-import styles from "./HeroGlyphDither.module.scss";
+import styles from "./GlyphDither.module.scss";
 ---
 
 <div class={styles.root} data-glyph-dither>
+  <h1 class={styles.source} aria-hidden="true">Maxed out in detail minimum in form</h1>
   <canvas class={styles.output} data-glyph-output aria-hidden="true"></canvas>
-
-  <button class={styles.toggle} type="button" data-glyph-toggle aria-expanded="false">
-    Glyph knobs
-  </button>
-
-  <form class={styles.controls} data-glyph-controls hidden>
-    <label>
-      Preset
-      <select name="preset">
-        <option value="ascii">ASCII</option>
-        <option value="default">Default</option>
-        <option value="blocks">Blocks</option>
-        <option value="braille">Braille</option>
-      </select>
-    </label>
-
-    <label>
-      Cell
-      <input name="cellSize" type="range" min="4" max="16" step="1" />
-      <output data-output-for="cellSize"></output>
-    </label>
-
-    <label>
-      Glyph
-      <input name="glyphScale" type="range" min="0.4" max="1.4" step="0.01" />
-      <output data-output-for="glyphScale"></output>
-    </label>
-
-    <label>
-      Font
-      <input name="fontScale" type="range" min="0.45" max="1.2" step="0.01" />
-      <output data-output-for="fontScale"></output>
-    </label>
-
-    <label>
-      Edge
-      <input name="edgeSoftness" type="range" min="0" max="1" step="0.01" />
-      <output data-output-for="edgeSoftness"></output>
-    </label>
-
-    <label>
-      Foreground
-      <input name="foregroundBrightness" type="range" min="0" max="1.5" step="0.01" />
-      <output data-output-for="foregroundBrightness"></output>
-    </label>
-
-    <label>
-      Midtone
-      <input name="midtoneBrightness" type="range" min="0" max="1.2" step="0.01" />
-      <output data-output-for="midtoneBrightness"></output>
-    </label>
-
-    <label>
-      Background
-      <input name="backgroundOpacity" type="range" min="0" max="0.12" step="0.005" />
-      <output data-output-for="backgroundOpacity"></output>
-    </label>
-
-    <label>
-      Contrast
-      <input name="contrast" type="range" min="0.2" max="3" step="0.01" />
-      <output data-output-for="contrast"></output>
-    </label>
-
-    <label>
-      Bias
-      <input name="thresholdBias" type="range" min="-0.5" max="0.5" step="0.01" />
-      <output data-output-for="thresholdBias"></output>
-    </label>
-
-    <label>
-      Gamma
-      <input name="gamma" type="range" min="0.2" max="3" step="0.01" />
-      <output data-output-for="gamma"></output>
-    </label>
-
-    <label>
-      Noise
-      <input name="noiseAmount" type="range" min="0" max="0.6" step="0.01" />
-      <output data-output-for="noiseAmount"></output>
-    </label>
-
-    <label>
-      Ripple scale
-      <input name="rippleScale" type="range" min="0" max="100" step="1" />
-      <output data-output-for="rippleScale"></output>
-    </label>
-
-    <label>
-      Ripple strength
-      <input name="rippleStrength" type="range" min="0" max="100" step="1" />
-      <output data-output-for="rippleStrength"></output>
-    </label>
-
-    <label>
-      Ripple viscosity
-      <input name="rippleViscosity" type="range" min="0" max="100" step="1" />
-      <output data-output-for="rippleViscosity"></output>
-    </label>
-
-    <label>
-      Ripple decay
-      <input name="rippleDecay" type="range" min="0" max="100" step="1" />
-      <output data-output-for="rippleDecay"></output>
-    </label>
-
-    <label>
-      Chromatic
-      <input name="rippleChromatic" type="range" min="0" max="100" step="1" />
-      <output data-output-for="rippleChromatic"></output>
-    </label>
-
-    <label>
-      Ripple speed
-      <input name="rippleSpeed" type="range" min="0" max="100" step="1" />
-      <output data-output-for="rippleSpeed"></output>
-    </label>
-
-    <label>
-      Ripple momentum
-      <input name="rippleMomentum" type="range" min="0" max="100" step="1" />
-      <output data-output-for="rippleMomentum"></output>
-    </label>
-
-    <label>
-      Ripple trail
-      <input name="rippleTrail" type="range" min="0" max="100" step="1" />
-      <output data-output-for="rippleTrail"></output>
-    </label>
-
-    <label>
-      Ripple directionality
-      <input name="rippleDirectionality" type="range" min="0" max="100" step="1" />
-      <output data-output-for="rippleDirectionality"></output>
-    </label>
-
-    <label>
-      Ripple irregularity
-      <input name="rippleIrregularity" type="range" min="0" max="100" step="1" />
-      <output data-output-for="rippleIrregularity"></output>
-    </label>
-
-    <button type="button" data-copy-params>Copy params</button>
-    <textarea data-params-output readonly rows="7" spellcheck="false"></textarea>
-  </form>
 </div>
 
 <script>
@@ -162,12 +18,10 @@ import styles from "./HeroGlyphDither.module.scss";
   } as const;
 
   const DEFAULT_PARAMS = {
-    preset: "default",
+    preset: "default" as keyof typeof GLYPH_PRESETS,
     cellSize: 5,
     glyphScale: 1.3,
     fontScale: 1.2,
-    textColor: "#ffffff",
-    backgroundColor: "#000000",
     edgeSoftness: 0.38,
     foregroundBrightness: 1.5,
     midtoneBrightness: 0.53,
@@ -194,14 +48,13 @@ import styles from "./HeroGlyphDither.module.scss";
   const MIN_DISTANCE_PX = 6;
   const MIN_INTERVAL_MS = 30;
 
-  // ─── GLSL — Dither (INTOCABLE) ────────────────────────────────────────────
+  // ─── GLSL — Dither ────────────────────────────────────────────────────────
 
   const VERT_SRC = `
     attribute vec2 a_position;
     void main() { gl_Position = vec4(a_position, 0.0, 1.0); }
   `;
 
-  // 4×4 coverage samples unrolled for WebGL 1 compatibility
   const FRAG_SRC = `
     precision highp float;
 
@@ -285,7 +138,6 @@ import styles from "./HeroGlyphDither.module.scss";
       }
 
       float gi = clamp(floor(cov * u_glyphCount), 0.0, u_glyphCount - 1.0);
-      // clamp withinCell away from edges to prevent glyph bleeding with LINEAR filter
       vec2 sc = clamp(withinCell, 0.5 / u_cellSize, 1.0 - 0.5 / u_cellSize);
       vec2 atlasUV = vec2((gi + sc.x) / u_glyphCount, sc.y);
       float mask = texture2D(u_atlas, atlasUV).r;
@@ -299,7 +151,6 @@ import styles from "./HeroGlyphDither.module.scss";
   `;
 
   // ─── GLSL — Ripple pre-pass ───────────────────────────────────────────────
-  // Suma analítica de N pulsos vivos. Sin simulación, sin reflexiones.
 
   const RIPPLE_LOOP = `
     vec2 disp = vec2(0.0);
@@ -312,11 +163,8 @@ import styles from "./HeroGlyphDither.module.scss";
       float pulse = exp(-(d * d) / max(u_thickness * u_thickness, 1e-6));
       float lifeT = clamp(r.z / u_lifetime, 0.0, 1.0);
       float decay = lifeT >= 1.0 ? 0.0 : pow(1.0 - lifeT, 2.0);
-      // -to/d apunta HACIA el centro → al sumar al uv, muestreamos de un punto
-      // más cercano al centro → imagen empujada HACIA AFUERA (lente divergente).
       vec2 dirRadial = d > 0.0001 ? -to / d : vec2(0.0);
       vec2 combined = mix(dirRadial, vel, u_directionality);
-      // Lóbulos angulares (rompe simetría esférica). Fase determinista por posición.
       float ang = atan(to.y, to.x);
       float phase = fract(sin(dot(r.xy, vec2(127.1, 311.7))) * 43758.5453) * 6.28318;
       float lobe = cos(ang * 3.0 + phase);
@@ -325,8 +173,6 @@ import styles from "./HeroGlyphDither.module.scss";
     }
   `;
 
-  // PRE_FRAG: fusión displace + chromatic. Cada canal RGB muestrea con offset distinto.
-  // En reposo (disp=0) o sin chromatic, R=G=B → dither posterior se comporta como antes.
   const PRE_FRAG = `
     precision highp float;
     uniform sampler2D u_srcRaw;
@@ -346,7 +192,6 @@ import styles from "./HeroGlyphDither.module.scss";
       ${RIPPLE_LOOP}
       vec2 maxDispUV = vec2(7.0) / u_resolution;
       disp = clamp(disp, -maxDispUV, maxDispUV);
-      // R = main glyph, G = ghost (offset por cromática). B = 0.
       float main = texture2D(u_srcRaw, uv + disp).r;
       float ghost = texture2D(u_srcRaw, uv + disp * (1.0 + u_chromatic)).r;
       gl_FragColor = vec4(main, ghost, 0.0, 1.0);
@@ -400,66 +245,10 @@ import styles from "./HeroGlyphDither.module.scss";
     return [1, 1, 1];
   }
 
-  function getHeadlineLines(): string[] {
-    const el = document.querySelector<HTMLElement>("[data-hero-section] h1");
+  function getSourceLines(root: HTMLElement): string[] {
+    const el = root.querySelector<HTMLElement>("h1");
     if (!el) return [];
     return el.innerText.split("\n").map((l) => l.trim()).filter(Boolean);
-  }
-
-  function numberParam(form: HTMLFormElement, name: keyof Params): number {
-    const el = form.elements.namedItem(String(name)) as HTMLInputElement | null;
-    return el ? parseFloat(el.value) : Number(DEFAULT_PARAMS[name]);
-  }
-
-  function getParams(form: HTMLFormElement): Params {
-    const preset = (form.elements.namedItem("preset") as HTMLSelectElement | null)?.value;
-    const theme = getThemeColors();
-    return {
-      preset: (
-        preset && preset in GLYPH_PRESETS ? preset : DEFAULT_PARAMS.preset
-      ) as Params["preset"],
-      cellSize: numberParam(form, "cellSize"),
-      glyphScale: numberParam(form, "glyphScale"),
-      fontScale: numberParam(form, "fontScale"),
-      textColor: theme.text,
-      backgroundColor: theme.bg,
-      edgeSoftness: numberParam(form, "edgeSoftness"),
-      foregroundBrightness: numberParam(form, "foregroundBrightness"),
-      midtoneBrightness: numberParam(form, "midtoneBrightness"),
-      backgroundOpacity: numberParam(form, "backgroundOpacity"),
-      contrast: numberParam(form, "contrast"),
-      thresholdBias: numberParam(form, "thresholdBias"),
-      gamma: numberParam(form, "gamma"),
-      noiseAmount: numberParam(form, "noiseAmount"),
-      rippleScale: numberParam(form, "rippleScale"),
-      rippleStrength: numberParam(form, "rippleStrength"),
-      rippleViscosity: numberParam(form, "rippleViscosity"),
-      rippleDecay: numberParam(form, "rippleDecay"),
-      rippleChromatic: numberParam(form, "rippleChromatic"),
-      rippleSpeed: numberParam(form, "rippleSpeed"),
-      rippleMomentum: numberParam(form, "rippleMomentum"),
-      rippleTrail: numberParam(form, "rippleTrail"),
-      rippleDirectionality: numberParam(form, "rippleDirectionality"),
-      rippleIrregularity: numberParam(form, "rippleIrregularity"),
-    };
-  }
-
-  function applyParams(form: HTMLFormElement, params: Params) {
-    Object.entries(params).forEach(([name, value]) => {
-      const el = form.elements.namedItem(name) as HTMLInputElement | HTMLSelectElement | null;
-      if (el) el.value = String(value);
-    });
-  }
-
-  function updateOutputs(form: HTMLFormElement) {
-    form.querySelectorAll<HTMLOutputElement>("output[data-output-for]").forEach((out) => {
-      const input = form.elements.namedItem(out.dataset.outputFor!) as HTMLInputElement | null;
-      if (input) out.value = input.value;
-    });
-  }
-
-  function serializeParams(params: Params): string {
-    return JSON.stringify(params, null, 2);
   }
 
   // ─── WebGL utilities ──────────────────────────────────────────────────────
@@ -616,7 +405,6 @@ import styles from "./HeroGlyphDither.module.scss";
     ctx.textBaseline = "middle";
     ctx.font = `${Math.max(1, Math.round(cellSize * glyphScale))}px "Geist Mono","SF Mono",Monaco,monospace`;
     for (let i = 0; i < n; i++) {
-      // Clip per-cell para que glyphs > cellSize no se derramen a la celda vecina
       ctx.save();
       ctx.beginPath();
       ctx.rect(i * cellSize, 0, cellSize, cellSize);
@@ -632,10 +420,7 @@ import styles from "./HeroGlyphDither.module.scss";
   function initGlyphDither() {
     const root = document.querySelector<HTMLElement>("[data-glyph-dither]");
     const glCanvas = root?.querySelector<HTMLCanvasElement>("[data-glyph-output]");
-    const form = root?.querySelector<HTMLFormElement>("[data-glyph-controls]");
-    const toggle = root?.querySelector<HTMLButtonElement>("[data-glyph-toggle]");
-    const copyButton = root?.querySelector<HTMLButtonElement>("[data-copy-params]");
-    if (!root || !glCanvas || !form || !toggle || root.dataset.bound === "true") return;
+    if (!root || !glCanvas || root.dataset.bound === "true") return;
 
     const gl = glCanvas.getContext("webgl", { premultipliedAlpha: false });
     if (!gl) {
@@ -643,12 +428,10 @@ import styles from "./HeroGlyphDither.module.scss";
       return;
     }
 
-    // ── Programs ────────────────────────────────────────────────────────────
     const ditherProg = buildProgramFromSrc(gl, VERT_SRC, FRAG_SRC);
     const dispProg = buildProgramFromSrc(gl, VERT_SRC, PRE_FRAG);
     if (!ditherProg || !dispProg) return;
 
-    // Full-screen quad — shared by all programs
     const quadBuf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
     gl.bufferData(
@@ -664,10 +447,6 @@ import styles from "./HeroGlyphDither.module.scss";
       gl!.vertexAttribPointer(loc, 2, gl!.FLOAT, false, 0, 0);
     }
 
-    // Texture unit assignment:
-    //   0 → u_source (dither)   — bound just before dither draw (preDither.tex o srcRaw)
-    //   1 → u_atlas (dither)
-    //   2 → u_srcRaw (pre-pass)
     const srcRawTex = makeTexture(gl)!;
     const atlasTex = makeTexture(gl)!;
 
@@ -714,12 +493,11 @@ import styles from "./HeroGlyphDither.module.scss";
     let atlasKey = "";
     let lastW = 0;
     let lastH = 0;
-    let cachedParams: Params = { ...DEFAULT_PARAMS };
+    const params: Params = { ...DEFAULT_PARAMS };
     let raf = 0;
     let pendingKickFrames = 0;
     let displaced: FBO | null = null;
 
-    // Tween de colores del theme (sincronizado con la var --theme-transition-duration).
     const THEME_TWEEN_MS = readMsVar("--theme-transition-duration", 220);
     let currentTextRGB = parseCssColor(getThemeColors().text);
     let currentBgRGB = parseCssColor(getThemeColors().bg);
@@ -733,7 +511,6 @@ import styles from "./HeroGlyphDither.module.scss";
     let themeTweenStart = -Infinity;
     let rippleAvailable = false;
 
-    // Pulsos
     type Ripple = { x: number; y: number; bornAt: number; amp: number; vx: number; vy: number };
     const ripples: Ripple[] = [];
     const ripplePack = new Float32Array(MAX_RIPPLES * 4);
@@ -744,18 +521,15 @@ import styles from "./HeroGlyphDither.module.scss";
     let prevMouseX = -1;
     let prevMouseY = -1;
 
-    applyParams(form, DEFAULT_PARAMS);
-
     function rippleParams() {
-      const p = cachedParams;
-      const trail = Math.max(0, Math.min(1, p.rippleTrail / 100));
+      const trail = Math.max(0, Math.min(1, params.rippleTrail / 100));
       return {
-        strength: (p.rippleStrength / 100) * 0.025,
-        thickness: Math.max(0.005, 0.04 - (p.rippleScale / 100) * 0.025),
-        lifetime: (0.2 + (p.rippleViscosity / 100) * 0.4) * (1 + trail * 2),
-        chromatic: Math.min(1.5, (p.rippleChromatic / 100) * 1.0),
-        directionality: Math.max(0, Math.min(1, p.rippleDirectionality / 100)),
-        irregularity: Math.max(0, Math.min(1, p.rippleIrregularity / 100)),
+        strength: (params.rippleStrength / 100) * 0.025,
+        thickness: Math.max(0.005, 0.04 - (params.rippleScale / 100) * 0.025),
+        lifetime: (0.2 + (params.rippleViscosity / 100) * 0.4) * (1 + trail * 2),
+        chromatic: Math.min(1.5, (params.rippleChromatic / 100) * 1.0),
+        directionality: Math.max(0, Math.min(1, params.rippleDirectionality / 100)),
+        irregularity: Math.max(0, Math.min(1, params.rippleIrregularity / 100)),
         minDistancePx: MIN_DISTANCE_PX * (1 - trail * 0.7),
         minIntervalMs: MIN_INTERVAL_MS * (1 - trail * 0.7),
       };
@@ -783,8 +557,8 @@ import styles from "./HeroGlyphDither.module.scss";
     }
 
     function uploadSource() {
-      const lines = getHeadlineLines();
-      const headline = document.querySelector<HTMLElement>("[data-hero-section] h1");
+      const lines = getSourceLines(root!);
+      const headline = root!.querySelector<HTMLElement>("h1");
       const hs = headline ? getComputedStyle(headline) : null;
       const fontFamily = hs?.fontFamily || `"Geist Variable", system-ui, sans-serif`;
       const fontWeight = hs?.fontWeight || "400";
@@ -797,17 +571,17 @@ import styles from "./HeroGlyphDither.module.scss";
         fontFamily,
         fontWeight,
         computedFontSize,
-        cachedParams.fontScale,
+        params.fontScale,
       );
       uploadTexture(gl!, srcRawTex, 2, sourceCanvas);
       return computedFontSize;
     }
 
     function ensureAtlas(effectiveCellSize: number) {
-      const glyphs = GLYPH_PRESETS[cachedParams.preset] || GLYPH_PRESETS.default;
-      const newAtlasKey = `${cachedParams.preset}:${effectiveCellSize}:${cachedParams.glyphScale}`;
+      const glyphs = GLYPH_PRESETS[params.preset] || GLYPH_PRESETS.default;
+      const newAtlasKey = `${params.preset}:${effectiveCellSize}:${params.glyphScale}`;
       if (newAtlasKey !== atlasKey) {
-        const atlas = buildAtlas(glyphs, effectiveCellSize, cachedParams.glyphScale);
+        const atlas = buildAtlas(glyphs, effectiveCellSize, params.glyphScale);
         uploadTexture(gl!, atlasTex, 1, atlas);
         atlasKey = newAtlasKey;
       }
@@ -815,7 +589,6 @@ import styles from "./HeroGlyphDither.module.scss";
     }
 
     function packRipples(now: number) {
-      // Filter dead in-place
       const lifetime = rippleParams().lifetime;
       let w = 0;
       for (let i = 0; i < ripples.length; i++) {
@@ -826,7 +599,6 @@ import styles from "./HeroGlyphDither.module.scss";
         }
       }
       ripples.length = w;
-      // Pack
       ripplePack.fill(0);
       rippleVelPack.fill(0);
       for (let i = 0; i < ripples.length && i < MAX_RIPPLES; i++) {
@@ -868,8 +640,7 @@ import styles from "./HeroGlyphDither.module.scss";
     }
 
     function runDither(sourceTex: WebGLTexture) {
-      const params = cachedParams;
-      const headline = document.querySelector<HTMLElement>("[data-hero-section] h1");
+      const headline = root!.querySelector<HTMLElement>("h1");
       const computedFontSize = headline ? parseFloat(getComputedStyle(headline).fontSize) : 64;
       const REFERENCE_FONT_SIZE = 100;
       const effectiveCellSize = Math.max(
@@ -906,7 +677,6 @@ import styles from "./HeroGlyphDither.module.scss";
     }
 
     function frame() {
-      cachedParams = getParams(form!);
       if (!ensureSize()) {
         raf = 0;
         return;
@@ -916,7 +686,6 @@ import styles from "./HeroGlyphDither.module.scss";
       const now = performance.now();
       packRipples(now);
 
-      // Avanzar tween de tema.
       const tweenT = themeTweenStart === -Infinity
         ? 1
         : Math.max(0, Math.min(1, (now - themeTweenStart) / THEME_TWEEN_MS));
@@ -932,11 +701,6 @@ import styles from "./HeroGlyphDither.module.scss";
         runDither(srcRawTex);
       }
 
-      root!.style.backgroundColor = cachedParams.backgroundColor;
-      const paramsOut = root!.querySelector<HTMLTextAreaElement>("[data-params-output]");
-      if (paramsOut) paramsOut.value = serializeParams(cachedParams);
-      updateOutputs(form!);
-
       if (pendingKickFrames > 0) pendingKickFrames--;
       const themeAnimating = tweenT < 1;
       if (ripples.length > 0 || pendingKickFrames > 0 || themeAnimating) {
@@ -951,7 +715,6 @@ import styles from "./HeroGlyphDither.module.scss";
       if (!raf) raf = requestAnimationFrame(frame);
     }
 
-    // ── Mouse → ripple injection ────────────────────────────────────────────
     function onMouseMove(e: MouseEvent) {
       if (!rippleAvailable) return;
       const rect = root!.getBoundingClientRect();
@@ -982,12 +745,10 @@ import styles from "./HeroGlyphDither.module.scss";
         dtFromLast >= rp.minIntervalMs;
       if (!shouldEmit) return;
 
-      const momentumFactor = (cachedParams.rippleMomentum / 100) * 3.0;
+      const momentumFactor = (params.rippleMomentum / 100) * 3.0;
       const amp = Math.max(0.05, Math.min(1, mag * momentumFactor * 0.01));
       const u = Math.max(0, Math.min(1, x / Math.max(1, rect.width)));
-      // gl_FragCoord Y origin is bottom-left; CSS y grows downward → flip
       const v = Math.max(0, Math.min(1, 1 - y / Math.max(1, rect.height)));
-      // Velocidad unitaria del ratón. CSS y crece hacia abajo, GLSL hacia arriba → invertir vy.
       const invMag = mag > 0 ? 1 / mag : 0;
       const vx = dx * invMag;
       const vy = -dy * invMag;
@@ -1039,48 +800,15 @@ import styles from "./HeroGlyphDither.module.scss";
       attributeFilter: ["data-theme", "data-theme-mode"],
     });
 
-    // ── Knob interactions ───────────────────────────────────────────────────
-    let deferredTimer = 0;
-    const scheduleKick = () => kick();
-    const scheduleDeferred = () => {
-      window.clearTimeout(deferredTimer);
-      deferredTimer = window.setTimeout(scheduleKick, 80);
-      updateOutputs(form!);
-    };
-
-    toggle.addEventListener("click", () => {
-      const hidden = form!.hidden;
-      form!.hidden = !hidden;
-      toggle.setAttribute("aria-expanded", String(hidden));
-    });
-
-    form.addEventListener("input", scheduleDeferred);
-    form.addEventListener("change", scheduleKick);
-
-    copyButton?.addEventListener("click", async () => {
-      const value = serializeParams(getParams(form!));
-      const out = root!.querySelector<HTMLTextAreaElement>("[data-params-output]");
-      if (out) {
-        out.value = value;
-        out.select();
-      }
-      try {
-        await navigator.clipboard.writeText(value);
-      } catch {}
-    });
-
     const onResize = () => kick();
     window.addEventListener("resize", onResize);
-    document.fonts.ready.then(scheduleKick);
+    document.fonts.ready.then(() => kick());
 
-    // Initial paint
     kick();
 
-    // ── Cleanup ─────────────────────────────────────────────────────────────
     const cleanup = () => {
       if (raf) cancelAnimationFrame(raf);
       raf = 0;
-      window.clearTimeout(deferredTimer);
       window.removeEventListener("resize", onResize);
       root!.removeEventListener("mousemove", onMouseMove);
       root!.removeEventListener("mouseleave", onMouseLeave);

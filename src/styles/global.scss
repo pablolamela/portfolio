@@ -5,7 +5,7 @@
 // ─── Color tokens (dark default) ──────────────────────────────────────────────
 
 :root {
-  --color-bg: #121212;
+  --color-bg: #080808;
   --color-bg-surface: rgba(0, 0, 0, 0.4);
   --color-btn-bg: #101010;
   --color-btn-active: rgba(255, 255, 255, 0.12);
@@ -45,7 +45,7 @@
 }
 
 [data-theme="dark"] {
-  --color-bg: #121212;
+  --color-bg: #080808;
   --color-bg-surface: rgba(0, 0, 0, 0.4);
   --color-btn-bg: #101010;
   --color-btn-active: rgba(255, 255, 255, 0.12);
@@ -84,9 +84,7 @@
   --space-2xl: 7.5rem; // 120px
   --space-body-x: #{use-space("s5")}; // 24px
 
-  --hero-h: 50vh;
-
-  // Theme transition (consumido por CSS, ThemeSwitch.tsx y HeroGlyphDither.astro)
+  // Theme transition (consumido por CSS, ThemeSwitch.tsx y GlyphDither.astro)
   --theme-transition-duration: 220ms;
   --theme-transition-easing: ease;
   --theme-transition-class-duration: 320ms;
@@ -98,7 +96,6 @@
     --blur-height: 80px;
     --space-2xl: 3.75rem; // 60px
     --space-body-x: #{use-space("s2")}; // 12px
-    --hero-h: 35vh;
   }
 }
 
@@ -144,11 +141,15 @@ body {
   html.theme-transition *::before,
   html.theme-transition *::after {
     transition:
-      background-color var(--theme-transition-duration) var(--theme-transition-easing),
+      background-color var(--theme-transition-duration)
+        var(--theme-transition-easing),
       color var(--theme-transition-duration) var(--theme-transition-easing),
-      border-color var(--theme-transition-duration) var(--theme-transition-easing),
-      outline-color var(--theme-transition-duration) var(--theme-transition-easing),
-      text-decoration-color var(--theme-transition-duration) var(--theme-transition-easing),
+      border-color var(--theme-transition-duration)
+        var(--theme-transition-easing),
+      outline-color var(--theme-transition-duration)
+        var(--theme-transition-easing),
+      text-decoration-color var(--theme-transition-duration)
+        var(--theme-transition-easing),
       fill var(--theme-transition-duration) var(--theme-transition-easing),
       stroke var(--theme-transition-duration) var(--theme-transition-easing),
       box-shadow var(--theme-transition-duration) var(--theme-transition-easing) !important;
