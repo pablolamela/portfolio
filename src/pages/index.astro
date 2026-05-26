@@ -1,11 +1,11 @@
 ---
 import Base from "@/layouts/Base.astro";
-import GlyphDither from "@/components/visuals/GlyphDither/GlyphDither.astro";
+import SceneBackground from "@/components/visuals/SceneBackground/SceneBackground.astro";
 ---
 
 <Base>
+  <SceneBackground />
   <main class="home-main">
-
   </main>
 </Base>
 
@@ -13,10 +13,5 @@ import GlyphDither from "@/components/visuals/GlyphDither/GlyphDither.astro";
   .home-main {
     display: block;
     padding-top: 0;
-  }
-  .dither-frame {
-    width: 100vw;
-    height: 100svh;
-    margin-inline: calc(50% - 50vw);
   }
 </style>

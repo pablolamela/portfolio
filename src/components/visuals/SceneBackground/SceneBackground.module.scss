@@ -1,0 +1,11 @@
+@use "../../../styles/_builders" as *;
+
+.canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: use-layer("back");
+  pointer-events: none;
+  display: block;
+}

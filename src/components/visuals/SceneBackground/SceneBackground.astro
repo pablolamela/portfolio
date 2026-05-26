@@ -1,0 +1,474 @@
+---
+import styles from "./SceneBackground.module.scss";
+---
+
+<canvas class={styles.canvas} data-scene-background aria-hidden="true"></canvas>
+
+<script>
+  import * as THREE from "three";
+  import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+  import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+  import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
+  import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
+
+  // ─── Helpers ──────────────────────────────────────────────────────────────
+
+  function readToken(name: string, fallback: string): string {
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return v || fallback;
+  }
+
+  function readSceneColors() {
+    return {
+      bg: readToken("--color-bg", "#080808"),
+      accent: readToken("--color-accent", "#ffab6c"),
+    };
+  }
+
+  // three.js warns when setStyle receives rgba()/hsla(); strip alpha first.
+  function toThreeColor(cssValue: string, target?: THREE.Color): THREE.Color {
+    const stripped = cssValue
+      .replace(/^rgba\(([^)]+)\)$/i, (_, args: string) => {
+        const parts = args.split(",").map((s) => s.trim()).slice(0, 3);
+        return `rgb(${parts.join(", ")})`;
+      })
+      .replace(/^hsla\(([^)]+)\)$/i, (_, args: string) => {
+        const parts = args.split(",").map((s) => s.trim()).slice(0, 3);
+        return `hsl(${parts.join(", ")})`;
+      });
+    return (target ?? new THREE.Color()).setStyle(stripped);
+  }
+
+  // ─── Init ─────────────────────────────────────────────────────────────────
+
+  function initSceneBackground() {
+    const canvas = document.querySelector<HTMLCanvasElement>("[data-scene-background]");
+    if (!canvas || canvas.dataset.bound === "true") return;
+
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    const dpr = () => Math.min(window.devicePixelRatio, 2);
+
+    const colors = readSceneColors();
+
+    // Renderer — transparent so the bloom halo falls off into CSS bg, not opaque black.
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(dpr());
+    renderer.setSize(width, height, false);
+    renderer.setClearColor(0x000000, 0);
+
+    // Scene + camera. A perspective camera (fov 28 / z 8) frames the solid with a touch of depth.
+    const scene = new THREE.Scene();
+    const initialAspect = width / height;
+    const perspectiveCamera = new THREE.PerspectiveCamera(28, initialAspect, 0.1, 100);
+    perspectiveCamera.position.set(0, 0, 8);
+    perspectiveCamera.lookAt(0, 0, 0);
+
+    // Composer chain: RenderPass → UnrealBloomPass. Bloom color is scene-driven
+    // (amber emissive is the only bright source), no shader plumbing needed.
+    const composer = new EffectComposer(renderer);
+    composer.setPixelRatio(dpr());
+    composer.setSize(width, height);
+    const renderPass = new RenderPass(scene, perspectiveCamera);
+    composer.addPass(renderPass);
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(width, height),
+      0.15, // strength
+      0.95, // radius
+      0.33, // threshold
+    );
+    composer.addPass(bloomPass);
+    // OutputPass handles linear→sRGB and preserves alpha through the chain.
+    const outputPass = new OutputPass();
+    composer.addPass(outputPass);
+
+    // Octahedron
+    const geometry = new THREE.OctahedronGeometry(1, 0);
+    const accentColor = toThreeColor(colors.accent);
+    const material = new THREE.MeshStandardMaterial({
+      color: accentColor,
+      emissive: accentColor.clone(),
+      emissiveIntensity: 0.35,
+      roughness: 0.35,
+      metalness: 0,
+    });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.set(0, 0, 0);
+    // Quaternion-based pose (Euler order-independent).
+    // Step 1: align the face normal (1,1,1) with +Z so that face points straight at the camera.
+    const faceNormal = new THREE.Vector3(1, 1, 1).normalize();
+    const cameraAxis = new THREE.Vector3(0, 0, 1);
+    const faceAlign = new THREE.Quaternion().setFromUnitVectors(faceNormal, cameraAxis);
+    // Step 2: roll around +Z so the projection of vertex (1,0,0) lands on +Y.
+    // The front face reads as a "traditional" point-up triangle: apex at the top, base
+    // horizontal along the bottom. The hexagon silhouette is pointy-top (vertex up and down).
+    const anchor = new THREE.Vector3(1, 0, 0).applyQuaternion(faceAlign);
+    const rollAngle = Math.atan2(anchor.y, anchor.x);
+    const rollCorrection = new THREE.Quaternion().setFromAxisAngle(cameraAxis, Math.PI / 2 - rollAngle);
+    mesh.quaternion.copy(faceAlign).premultiply(rollCorrection);
+    scene.add(mesh);
+    // Resting orientation. Motion (apex-diagonal spin + mouse-driven X tilt) layers on top of this.
+    const baseQuat = mesh.quaternion.clone();
+    // Spin axis = world direction of the front-face top apex vertex (a body diagonal, ~35° off
+    // vertical, leaning toward the camera). Rotating about it keeps that apex pinned.
+    const spinAxis = new THREE.Vector3(1, 0, 0).applyQuaternion(baseQuat).normalize();
+
+    // Lights — diffuse balance: strong ambient fill + a gentler directional key, so per-face
+    // contrast stays soft rather than harsh. Bloom does the glow. All tunable via the dev panel.
+    const ambient = new THREE.AmbientLight(0xffffff, 0.45);
+    scene.add(ambient);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.9);
+    dirLight.position.set(-1.6, 1.8, 1.8);
+    scene.add(dirLight);
+
+    // ─── Motion: continuous apex-diagonal spin + mouse-driven X tilt ───────────
+    // Position never changes — only rotation, layered on the resting pose above.
+    const DEG = THREE.MathUtils.degToRad;
+    let spinSpeedRad = DEG(18); // apex-diagonal spin rate, rad/s (signed)
+    let ampXRad = DEG(25); // X tilt amplitude at screen edge, rad (signed)
+    let damping = 0.01; // tilt follow factor, per-frame lerp (matches gravity.ts)
+
+    let spinAngle = 0; // accumulated spin about spinAxis
+    let mouseNormY = 0; // cursor Y in [-1, 1]
+    let currentTilt = 0; // damped X tilt
+
+    const AXIS_X = new THREE.Vector3(1, 0, 0);
+    const qSpin = new THREE.Quaternion();
+    const qTilt = new THREE.Quaternion();
+
+    // Honor prefers-reduced-motion: freeze at the resting pose, re-evaluate on change.
+    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let motionEnabled = !motionQuery.matches;
+    const onMotionPrefChange = () => {
+      motionEnabled = !motionQuery.matches;
+      if (!motionEnabled) {
+        spinAngle = 0;
+        currentTilt = 0;
+        mesh.quaternion.copy(baseQuat);
+      }
+    };
+    motionQuery.addEventListener("change", onMotionPrefChange);
+
+    const onMouseMove = (e: MouseEvent) => {
+      mouseNormY = (e.clientY / window.innerHeight) * 2 - 1;
+    };
+    window.addEventListener("mousemove", onMouseMove);
+
+    // Dev-only knobs to fine-tune the motion above.
+    let devPanel: HTMLDivElement | null = null;
+    if (import.meta.env.DEV) {
+      devPanel = document.createElement("div");
+      devPanel.style.cssText = [
+        "position:fixed",
+        "top:12px",
+        "right:12px",
+        "z-index:9999",
+        "background:rgba(10,10,10,0.78)",
+        "color:#ededed",
+        "padding:12px 14px",
+        "font-family:'Geist Mono',ui-monospace,monospace",
+        "font-size:11px",
+        "line-height:1.4",
+        "border:1px solid #1f1f1f",
+        "border-radius:8px",
+        "backdrop-filter:blur(8px)",
+        "-webkit-backdrop-filter:blur(8px)",
+        "display:flex",
+        "flex-direction:column",
+        "gap:10px",
+        "min-width:260px",
+        "max-height:calc(100vh - 24px)",
+        "overflow-y:auto",
+        "user-select:none",
+      ].join(";");
+
+      type Control = {
+        group: string;
+        key: string;
+        defaultValue: number;
+        get: () => number;
+        set: (v: number) => void;
+      };
+      const controls: Control[] = [];
+
+      const addGroupHeader = (text: string) => {
+        const h = document.createElement("div");
+        h.textContent = text;
+        h.style.cssText =
+          "text-transform:uppercase;letter-spacing:0.14em;opacity:0.5;font-size:10px;margin-top:4px;";
+        devPanel!.appendChild(h);
+      };
+
+      const addControl = (
+        group: string,
+        key: string,
+        label: string,
+        min: number,
+        max: number,
+        step: number,
+        value: number,
+        onChange: (v: number) => void,
+      ) => {
+        const wrap = document.createElement("div");
+        wrap.style.cssText = "display:flex;flex-direction:column;gap:3px;";
+
+        const row = document.createElement("div");
+        row.style.cssText = "display:flex;justify-content:space-between;align-items:center;gap:8px;opacity:0.9;";
+        const name = document.createElement("span");
+        name.textContent = label;
+
+        const num = document.createElement("input");
+        num.type = "number";
+        num.min = String(min);
+        num.max = String(max);
+        num.step = String(step);
+        num.value = String(value);
+        num.style.cssText = [
+          "width:64px",
+          "background:rgba(255,255,255,0.04)",
+          "border:1px solid #2a2a2a",
+          "color:#ededed",
+          "font:inherit",
+          "padding:1px 4px",
+          "border-radius:3px",
+          "text-align:right",
+          "outline:none",
+        ].join(";");
+
+        row.appendChild(name);
+        row.appendChild(num);
+
+        const slider = document.createElement("input");
+        slider.type = "range";
+        slider.min = String(min);
+        slider.max = String(max);
+        slider.step = String(step);
+        slider.value = String(value);
+        slider.style.cssText = "width:100%;accent-color:#f59e0b;";
+
+        slider.addEventListener("input", () => {
+          const v = parseFloat(slider.value);
+          num.value = String(v);
+          onChange(v);
+        });
+        num.addEventListener("input", () => {
+          const v = parseFloat(num.value);
+          if (!Number.isFinite(v)) return;
+          slider.value = String(v);
+          onChange(v);
+        });
+
+        wrap.appendChild(row);
+        wrap.appendChild(slider);
+        devPanel!.appendChild(wrap);
+
+        controls.push({
+          group,
+          key,
+          defaultValue: value,
+          get: () => parseFloat(slider.value),
+          set: (v: number) => {
+            slider.value = String(v);
+            num.value = String(v);
+            onChange(v);
+          },
+        });
+      };
+
+      // MOTION — fine-tune the apex-diagonal spin + mouse-driven X tilt.
+      addGroupHeader("MOTION");
+      addControl("motion", "spin", "spin (°/s)", -120, 120, 1, 18, (v) => {
+        spinSpeedRad = DEG(v);
+      });
+      addControl("motion", "ampX", "x amp (°)", -45, 45, 1, 25, (v) => {
+        ampXRad = DEG(v);
+      });
+      addControl("motion", "damping", "damping", 0.01, 0.3, 0.01, 0.01, (v) => {
+        damping = v;
+      });
+
+      addGroupHeader("LIGHT");
+      addControl("light", "ambient", "ambient", 0, 2, 0.05, ambient.intensity, (v) => {
+        ambient.intensity = v;
+      });
+      addControl("light", "dirIntensity", "dir intensity", 0, 3, 0.05, dirLight.intensity, (v) => {
+        dirLight.intensity = v;
+      });
+      addControl("light", "x", "dir x", -5, 5, 0.1, dirLight.position.x, (v) => {
+        dirLight.position.x = v;
+      });
+      addControl("light", "y", "dir y", -5, 5, 0.1, dirLight.position.y, (v) => {
+        dirLight.position.y = v;
+      });
+      addControl("light", "z", "dir z", -5, 5, 0.1, dirLight.position.z, (v) => {
+        dirLight.position.z = v;
+      });
+
+      addGroupHeader("BLOOM");
+      addControl("bloom", "strength", "strength", 0, 3, 0.05, bloomPass.strength, (v) => {
+        bloomPass.strength = v;
+      });
+      addControl("bloom", "radius", "radius", 0, 2, 0.05, bloomPass.radius, (v) => {
+        bloomPass.radius = v;
+      });
+      addControl("bloom", "threshold", "threshold", 0, 1, 0.01, bloomPass.threshold, (v) => {
+        bloomPass.threshold = v;
+      });
+
+      // Action row: reset to defaults, copy current values as JSON.
+      const actions = document.createElement("div");
+      actions.style.cssText =
+        "display:flex;gap:6px;margin-top:6px;padding-top:8px;border-top:1px solid #1f1f1f;";
+
+      const btnStyle = [
+        "flex:1",
+        "background:rgba(255,255,255,0.04)",
+        "border:1px solid #2a2a2a",
+        "color:#ededed",
+        "font:inherit",
+        "padding:5px 8px",
+        "border-radius:4px",
+        "cursor:pointer",
+        "text-transform:uppercase",
+        "letter-spacing:0.08em",
+        "font-size:10px",
+        "transition:background 120ms ease",
+      ].join(";");
+
+      const resetBtn = document.createElement("button");
+      resetBtn.type = "button";
+      resetBtn.textContent = "Reset";
+      resetBtn.style.cssText = btnStyle;
+      resetBtn.addEventListener("mouseenter", () => {
+        resetBtn.style.background = "rgba(255,255,255,0.08)";
+      });
+      resetBtn.addEventListener("mouseleave", () => {
+        resetBtn.style.background = "rgba(255,255,255,0.04)";
+      });
+      resetBtn.addEventListener("click", () => {
+        for (const c of controls) c.set(c.defaultValue);
+      });
+
+      const copyBtn = document.createElement("button");
+      copyBtn.type = "button";
+      copyBtn.textContent = "Copy values";
+      copyBtn.style.cssText = btnStyle;
+      copyBtn.addEventListener("mouseenter", () => {
+        copyBtn.style.background = "rgba(255,255,255,0.08)";
+      });
+      copyBtn.addEventListener("mouseleave", () => {
+        copyBtn.style.background = "rgba(255,255,255,0.04)";
+      });
+      const defaultCopyLabel = "Copy values";
+      copyBtn.addEventListener("click", async () => {
+        const payload: Record<string, unknown> = {};
+        for (const c of controls) {
+          if (!payload[c.group]) payload[c.group] = {};
+          (payload[c.group] as Record<string, number>)[c.key] = c.get();
+        }
+        const json = JSON.stringify(payload, null, 2);
+        try {
+          await navigator.clipboard.writeText(json);
+          copyBtn.textContent = "Copied";
+          copyBtn.style.color = "#f59e0b";
+        } catch {
+          copyBtn.textContent = "Copy failed";
+        }
+        window.setTimeout(() => {
+          copyBtn.textContent = defaultCopyLabel;
+          copyBtn.style.color = "#ededed";
+        }, 1200);
+      });
+
+      actions.appendChild(resetBtn);
+      actions.appendChild(copyBtn);
+      devPanel.appendChild(actions);
+
+      document.body.appendChild(devPanel);
+    }
+
+    // Resize
+    const onResize = () => {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      renderer.setPixelRatio(dpr());
+      renderer.setSize(width, height, false);
+      composer.setPixelRatio(dpr());
+      composer.setSize(width, height);
+      bloomPass.resolution.set(width, height);
+      const aspect = width / height;
+      perspectiveCamera.aspect = aspect;
+      perspectiveCamera.updateProjectionMatrix();
+    };
+    window.addEventListener("resize", onResize);
+
+    // Theme reactivity — bg is now driven by CSS on html, only material color tracks here.
+    const themeObserver = new MutationObserver(() => {
+      const c = readSceneColors();
+      toThreeColor(c.accent, material.color);
+      toThreeColor(c.accent, material.emissive);
+    });
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme", "data-theme-mode"],
+    });
+
+    // Backgrounded mobile tabs can drop the GL context; prevent default so it can restore.
+    const onContextLost = (e: Event) => {
+      e.preventDefault();
+    };
+    canvas.addEventListener("webglcontextlost", onContextLost);
+
+    // Render loop — drives motion (apex-diagonal spin + damped mouse tilt), then renders.
+    let rafId = 0;
+    let lastTime = performance.now();
+    const frame = (now: number) => {
+      const dt = Math.min((now - lastTime) / 1000, 0.1); // clamp tab-switch jumps
+      lastTime = now;
+      if (motionEnabled) {
+        spinAngle += spinSpeedRad * dt; // dt-based → framerate-independent
+        const targetTilt = mouseNormY * ampXRad;
+        currentTilt += (targetTilt - currentTilt) * damping; // per-frame ease (gravity.ts-style)
+        qSpin.setFromAxisAngle(spinAxis, spinAngle);
+        qTilt.setFromAxisAngle(AXIS_X, currentTilt);
+        // Resting pose → spin about apex diagonal (apex pinned) → mouse X tilt.
+        mesh.quaternion.copy(baseQuat).premultiply(qSpin).premultiply(qTilt);
+      }
+      composer.render();
+      rafId = requestAnimationFrame(frame);
+    };
+    rafId = requestAnimationFrame(frame);
+
+    // Cleanup on Astro view transition
+    const cleanup = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = 0;
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("mousemove", onMouseMove);
+      motionQuery.removeEventListener("change", onMotionPrefChange);
+      themeObserver.disconnect();
+      canvas.removeEventListener("webglcontextlost", onContextLost);
+      if (devPanel && devPanel.parentNode) devPanel.parentNode.removeChild(devPanel);
+      scene.remove(mesh);
+      geometry.dispose();
+      material.dispose();
+      outputPass.dispose();
+      bloomPass.dispose();
+      composer.dispose();
+      renderer.dispose();
+      renderer.forceContextLoss();
+      canvas.dataset.bound = "";
+      document.removeEventListener("astro:before-swap", cleanup);
+    };
+    document.addEventListener("astro:before-swap", cleanup);
+
+    canvas.dataset.bound = "true";
+  }
+
+  document.addEventListener("astro:page-load", initSceneBackground);
+  if (document.readyState !== "loading") {
+    initSceneBackground();
+  } else {
+    document.addEventListener("DOMContentLoaded", initSceneBackground, { once: true });
+  }
+</script>

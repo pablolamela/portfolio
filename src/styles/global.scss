@@ -123,11 +123,14 @@ body {
   margin: 0;
 }
 
+html {
+  background: var(--color-bg);
+}
+
 body {
   margin: 0 var(--space-body-x);
   overflow-x: hidden;
   min-height: 100vh;
-  background: var(--color-bg);
   color: var(--color-text);
   font-size: 1rem;
   line-height: 1.5;
