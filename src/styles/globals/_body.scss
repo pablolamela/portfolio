@@ -1,0 +1,109 @@
+//
+//////////////////////////////////////////
+//  Body & tokens
+//////////////////////////////////////////
+//
+// Static tokens (colors, layers, type) live in the Sass maps and are
+// consumed via use-color()/use-layer() + typography mixins.
+// Only RESPONSIVE tokens (they change at breakpoints) and JS-driven
+// values remain as CSS custom properties — the project's documented exception.
+
+:root {
+  /* Default font: Inter Display (static, non-variable), weight 400 */
+  font-family:
+    "Inter var",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-feature-settings:
+    "liga" 1,
+    "calt" 1; /* ok mantenerlo */
+  font-optical-sizing: auto;
+
+  /* Overlay de blur progresivo bajo la navbar (responsive) */
+  --blur-height: 160px;
+  --blur-max: 50px;
+
+  /* Spacing tokens (desktop, responsive — overridden on mobile below) */
+  --space-120: 120px; /* main gap & padding-top base */
+  --space-40: 40px; /* pad40, stack40 */
+  --space-40b: 40px;
+  --space-24: 24px; /* row, grid gaps */
+  --space-32: 32px; /* rowBetween */
+  --space-10: 10px; /* small gaps */
+  --space-body-x: 24px; /* body horizontal margin */
+
+  /* Spacing for hero section */
+  --hero-section: 50vh;
+}
+
+::-moz-selection,
+::selection {
+  color: use-color('background');
+  background: use-color('accent');
+}
+
+@include for-screens-below("s") {
+  :root {
+    --hero-section: 30vh;
+  }
+}
+/* Mobile tokens (override desktop values) */
+@include for-screens-below("s") {
+  :root {
+    /* Reduce overlay height by 50% on mobile */
+    --blur-height: 80px;
+
+    /* Spacing tokens (mobile = 50% de desktop) */
+    --space-120: 60px;
+    --space-40: 40px;
+    --space-40b: 24px;
+    --space-24: 12px;
+    --space-32: 16px;
+    --space-10: 5px;
+    --space-body-x: 12px;
+  }
+}
+
+/* Use variable font if supported */
+@supports (font-variation-settings: normal) {
+  :root {
+    /* Keep static Inter Display even if variable fonts are supported */
+    font-family:
+      "Inter var",
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-optical-sizing: auto;
+  }
+}
+
+body {
+  padding: 0;
+  margin: 0 var(--space-body-x);
+  overflow-x: hidden;
+}
+
+/* Base */
+body {
+  min-height: 100vh;
+  background: use-color('background');
+  color: use-color('primary');
+  @include body-typo();
+  font-weight: 400;
+
+  /* Font antialiasing */
+  -webkit-font-smoothing: antialiased; /* macOS Safari/Chrome */
+  -moz-osx-font-smoothing: grayscale; /* macOS Firefox */
+  text-rendering: optimizeLegibility; /* enable kerning/ligatures where supported */
+}
+
+/* Layout */
+main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-120); /* spacing between sections */
+  padding-top: var(--space-120); /* top spacing under navbar */
+}

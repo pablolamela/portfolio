@@ -1,0 +1,69 @@
+//
+//////////////////////////////////////////
+//  Appearance mixins
+//////////////////////////////////////////
+//
+// - Masonry-cols
+// - Column-grid
+// - Media wrapper
+// - Section spacing
+
+//
+// --------------------------------------
+//  Masonry-cols
+// --------------------------------------
+//
+
+@mixin masonry-cols($gap: 96px, $align: center) {
+  display: flex;
+  align-items: $align;
+  width: 100%;
+  gap: $gap;
+  > * {
+    display: flex;
+    flex-direction: column;
+    gap: $gap;
+    background-clip: padding-box;
+  }
+}
+
+@mixin column-grid($max-cols: 2, $gap: 48px) {
+  display: grid;
+  gap: $gap;
+  @include for-screen('xs') {
+    grid-template-columns: repeat(1, 1fr);
+  }
+  @include for-screen('s') {
+    grid-template-columns: repeat(1, 1fr);
+  }
+  @include for-screens-above('m') {
+    grid-template-columns: repeat($max-cols, 1fr);
+  }
+}
+
+//
+// --------------------------------------
+//  Media wrapper
+// --------------------------------------
+//
+
+@mixin media-overflow-wrapper() {
+  @include for-screens-above('l') {
+    width: #{"min(100% - 64px, 1500px)"} !important;
+  }
+}
+
+//
+// --------------------------------------
+//  Section spacing
+// --------------------------------------
+//
+
+@mixin section-spacing() {
+  @include for-screens-below('m') {
+    margin-bottom: 120px;
+  }
+  @include for-screens-above('m') {
+    margin-bottom: 240px;
+  }
+}

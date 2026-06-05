@@ -65,12 +65,12 @@
 }
 
 .square {
-  background: var(--color-background-opacity);
+  background: use-color('background-opacity');
   aspect-ratio: 1 / 1;
 }
 
 .media16x9 {
-  background: var(--color-background-opacity);
+  background: use-color('background-opacity');
   aspect-ratio: 16 / 9;
 }
 
@@ -95,7 +95,7 @@
 
 .fullWidthMedia {
   width: 100%;
-  background: var(--color-background-opacity);
+  background: use-color('background-opacity');
   height: 320px;
 }
 

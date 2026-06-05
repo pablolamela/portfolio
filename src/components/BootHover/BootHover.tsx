@@ -6,7 +6,7 @@ import { useEffect } from "react";
  */
 export default function BootHover() {
   useEffect(() => {
-    void import("../scripts/init-hover");
+    void import("@/scripts/init-hover");
   }, []);
   return null;
 }

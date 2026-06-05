@@ -1,5 +1,5 @@
 ---
-import styles from "./ProjectGrid.module.scss";
+import style from "./projectGrid.module.scss";
 import { Image } from "astro:assets";
 
 type ProjectMeta = {
@@ -17,7 +17,7 @@ type ProjectMeta = {
   showInHome?: boolean; // opcional: si es false, no aparece en la grid de Home
 };
 
-const modules = await Astro.glob("../pages/projects/*.astro");
+const modules = await Astro.glob("../../pages/projects/*.astro");
 const projects = modules
   .map((m) => (m as unknown as { project?: ProjectMeta }).project)
   .filter((p): p is ProjectMeta => Boolean(p))
@@ -28,31 +28,31 @@ const projects = modules
 const count = projects.length;
 ---
 
-<section class={styles.section} aria-labelledby="selected-work">
-  <header class={styles.header}>
-    <h2 id="selected-work" class={styles.title}>Selected Work</h2>
-    <div class={styles.count}>({count})</div>
+<section class={style.ProjectGrid} aria-labelledby="selected-work">
+  <header class={style.ProjectGrid_header}>
+    <h2 id="selected-work" class={style.ProjectGrid_title}>Selected Work</h2>
+    <div class={style.ProjectGrid_count}>({count})</div>
   </header>
 
-  <div class={styles.grid}>
+  <div class={style.ProjectGrid_grid}>
     {
       projects.map((p) => (
-        <a href={`/projects/${p.slug}`} class={styles.card} rel="nofollow" data-card>
-          <div class={styles.thumb} data-nosnippet>
+        <a href={`/projects/${p.slug}`} class={style.ProjectGrid_card} rel="nofollow" data-card>
+          <div class={style.ProjectGrid_thumb} data-nosnippet>
             {p.poster ? (
               <Image
-                class={styles.thumbImg}
+                class={style.ProjectGrid_thumbImg}
                 src={p.poster}
                 alt=""
                 aria-hidden="true"
                 loading="eager"
               />
             ) : (
-              <img class={styles.thumbImg} src={p.thumbnail} alt="" aria-hidden="true" />
+              <img class={style.ProjectGrid_thumbImg} src={p.thumbnail} alt="" aria-hidden="true" />
             )}
             {p.video && (
               <video
-                class={styles.thumbVideo}
+                class={style.ProjectGrid_thumbVideo}
                 src={p.video}
                 muted
                 loop
@@ -69,11 +69,11 @@ const count = projects.length;
               </video>
             )}
           </div>
-          <div class={styles.info}>
-            <div class={styles.cardTitle} data-nosnippet>
+          <div class={style.ProjectGrid_info}>
+            <div class={style.ProjectGrid_cardTitle} data-nosnippet>
               <span data-nosnippet>{p.title}</span>
             </div>
-            <div class={styles.skills} data-nosnippet>
+            <div class={style.ProjectGrid_skills} data-nosnippet>
               {p.skills.join(", ")}
             </div>
           </div>

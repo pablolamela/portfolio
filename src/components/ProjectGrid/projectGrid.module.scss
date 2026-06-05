@@ -1,12 +1,11 @@
-@import "../styles/_builders";
-.section {
+.ProjectGrid {
   display: flex;
   flex-direction: column;
-  gap: 40px; /* layout_Z58JT0 spacing between title and grid */
+  gap: use-space('s5'); /* layout_Z58JT0 spacing between title and grid */
   width: 100%;
 }
 
-.header {
+.ProjectGrid_header {
   display: flex;
   align-items: flex-end;
   justify-content: space-between; /* layout_HANCDF */
@@ -15,37 +14,35 @@
   }
 }
 
-.title {
-  font-size: var(--font-body-size);
-  line-height: var(--font-body-line);
-  color: var(--color-primary);
+.ProjectGrid_title {
+  @include body-typo();
+  color: use-color('primary');
 }
 
-.count {
-  font-size: var(--font-body-size);
-  line-height: var(--font-body-line);
-  color: var(--color-grey);
+.ProjectGrid_count {
+  @include body-typo();
+  color: use-color('grey');
 }
 
-.grid {
+.ProjectGrid_grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  row-gap: 40px; /* layout_FZKC5M */
-  column-gap: 24px;
+  row-gap: use-space('s5'); /* layout_FZKC5M */
+  column-gap: use-space('s3');
   width: 100%;
 }
 
 @include for-screens-below("l") {
-  .grid {
+  .ProjectGrid_grid {
     grid-template-columns: 1fr;
   }
 }
 
-.card {
+.ProjectGrid_card {
   position: relative; /* para el cursor custom */
   display: flex;
   flex-direction: column; /* layout_YSIDIS */
-  gap: 8px;
+  gap: use-space('s1');
   text-decoration: none;
   color: inherit;
 
@@ -54,18 +51,18 @@
   --y: 0px;
 }
 
-.thumb {
+.ProjectGrid_thumb {
   position: relative; /* stack poster/video */
   overflow: hidden;
   display: flex;
   flex-direction: column; /* layout_KM3L53 */
-  gap: 24px;
+  gap: use-space('s3');
   width: 100%;
   aspect-ratio: 16/11; /* maintain shape similar to design */
   border-radius: 0;
 }
 
-.thumbImg {
+.ProjectGrid_thumbImg {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -76,7 +73,7 @@
   transition: opacity 200ms ease;
 }
 
-.thumbVideo {
+.ProjectGrid_thumbVideo {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -88,58 +85,56 @@
 }
 
 /* Phase 1 on hover: show the video (poster still visible until phase 2) */
-.card[data-video-in] .thumbVideo {
+.ProjectGrid_card[data-video-in] .ProjectGrid_thumbVideo {
   opacity: 1;
 }
 /* Keep poster visible during phase 1; fade it only in phase 2 */
-.card[data-video-in] .thumbImg {
+.ProjectGrid_card[data-video-in] .ProjectGrid_thumbImg {
   opacity: 1;
 }
 
 /* Safety: ensure video is visible on hover even if painted flag delays */
-.card[data-hover] .thumbVideo {
+.ProjectGrid_card[data-hover] .ProjectGrid_thumbVideo {
   opacity: 1;
 }
-.card[data-hover][data-painted] .thumbVideo {
+.ProjectGrid_card[data-hover][data-painted] .ProjectGrid_thumbVideo {
   opacity: 1;
 }
 
-.card[data-hover][data-painted] .thumbImg {
+.ProjectGrid_card[data-hover][data-painted] .ProjectGrid_thumbImg {
   opacity: 0;
 }
 
 @media (pointer: coarse) {
-  .thumbVideo {
+  .ProjectGrid_thumbVideo {
     display: none;
   }
 }
 
-.info {
+.ProjectGrid_info {
   display: flex;
   flex-direction: column; /* layout_TCD36R */
 }
 
-.cardTitle {
-  font-size: var(--font-body-size);
-  line-height: var(--font-body-line);
-  color: var(--color-primary);
+.ProjectGrid_cardTitle {
+  @include body-typo();
+  color: use-color('primary');
 }
 
-.skills {
-  font-size: 0.875rem;
-  line-height: var(--font-body-line);
-  color: var(--color-grey);
+.ProjectGrid_skills {
+  @include body-small-typo();
+  color: use-color('grey');
 }
 
 /* Custom cursor inside each project card */
 @media (pointer: fine) {
   /* Oculta el cursor nativo mientras está activo el cursor custom */
-  .card[data-hover] {
+  .ProjectGrid_card[data-hover] {
     cursor: none;
   }
 
   /* Rectángulo flotante que sigue al puntero */
-  .card::after {
+  .ProjectGrid_card::after {
     content: "View Project";
     position: absolute;
     top: var(--y);
@@ -150,9 +145,9 @@
 
     /* Estilo según requisitos */
     font-size: 1rem;
-    color: var(--color-primary); /* “black” en globals */
-    padding: 12px 16px;
-    background: var(--color-background-opacity); /* fondo con opacidad */
+    color: use-color('primary'); /* “black” en globals */
+    padding: 12px use-space('s2');
+    background: use-color('background-opacity'); /* fondo con opacidad */
     -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
 
@@ -165,7 +160,7 @@
   }
 
   /* Mostrar el cursor custom cuando está activo (data-hover) */
-  .card[data-hover]::after {
+  .ProjectGrid_card[data-hover]::after {
     opacity: 1;
   }
 }

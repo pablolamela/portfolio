@@ -1,0 +1,18 @@
+---
+export interface Props {
+  href: string;
+  label: string;
+  external?: boolean;
+  class?: string;
+}
+
+import style from "./button.module.scss";
+
+const { href, label, external = false, class: extraClass = "" } = Astro.props;
+const rel = external ? "noopener noreferrer" : undefined;
+const target = external ? "_blank" : undefined;
+---
+
+<a href={href} class={`${style.Button} ${extraClass}`} rel={rel} target={target}>
+  {label}
+</a>

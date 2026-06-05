@@ -1,0 +1,47 @@
+//
+//////////////////////////////////////////
+//  Reset
+//////////////////////////////////////////
+//
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  padding: 0;
+  margin: 0;
+}
+
+/* Global text weight: force 400 across common text elements */
+:where(body, p, a, h1, h2, h3, h4, h5, h6, li, label, span, small, strong, em) {
+  font-weight: 400;
+  margin: 0;
+}
+
+/* Global radius reset */
+:where(
+  img,
+  video,
+  canvas,
+  iframe,
+  a,
+  button,
+  input,
+  textarea,
+  select,
+  div,
+  section,
+  article,
+  figure
+) {
+  border-radius: 0 !important;
+}
+
+/* Links */
+a {
+  color: use-color('white');
+  text-decoration: none;
+}

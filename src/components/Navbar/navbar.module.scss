@@ -1,36 +1,36 @@
-.nav {
+.Navbar {
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: use-layer('navbar');
   display: flex;
   align-items: center;
   justify-content: center; /* matches layout_6JLRR7 */
-  gap: 32px;
+  gap: use-space('s4');
   width: 100%;
   mix-blend-mode: difference;
 }
 
-.inner {
+.Navbar_inner {
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: use-space('s4');
   width: 100%;
 }
 
-.left,
-.right {
+.Navbar_left,
+.Navbar_right {
   flex: 1 1 0;
   min-width: 0;
   display: flex;
   align-items: center;
 }
 
-.left {
+.Navbar_left {
   text-align: left;
   white-space: nowrap;
 }
 
-.center {
+.Navbar_center {
   flex: 0 0 auto;
   text-align: center;
   display: flex;
@@ -38,24 +38,22 @@
   gap: 10px;
 }
 
-.right {
+.Navbar_right {
   text-align: right;
   white-space: nowrap;
   justify-content: flex-end; /* layout_6YT7X5 */
 }
 
 /* Brand text */
-.brand {
-  font-size: var(--font-label-size);
-  line-height: var(--font-label-line);
-  font-weight: 400;
+.Navbar_brand {
+  @include label-typo();
   letter-spacing: -0.02em;
-  color: var(--color-primary);
+  color: use-color('primary');
   text-decoration: none;
-  padding: 16px 0; /* layout_M55I9A */
+  padding: use-space('s2') 0; /* layout_M55I9A */
 }
 
-.spacer {
+.Navbar_spacer {
   flex: 0 0 1px;
   height: 1px;
   opacity: 0;

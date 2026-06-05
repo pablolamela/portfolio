@@ -1,0 +1,117 @@
+//
+//////////////////////////////////////////
+//  Mixins
+//////////////////////////////////////////
+//
+// - Typography
+// - Position
+// - Appearance
+// - Animations
+// - Checkers and errors
+
+//
+// --------------------------------------
+//  Typography
+// --------------------------------------
+//
+
+@mixin font-size($size) {
+  font-size: $size + px;
+  font-size: $size * 0.0625 + rem; // body base font 16px
+}
+
+@mixin line-height($size) {
+  line-height: $size + px;
+  line-height: $size * 0.0625 + rem;
+}
+
+@mixin text-ellipsis() {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+//
+// --------------------------------------
+//  Position
+// --------------------------------------
+//
+
+@mixin horizontal-center($width) {
+  left: 50%;
+  margin-left: $width * -0.5;
+}
+
+@mixin vertical-center($height) {
+  top: 50%;
+  margin-top: $height * -0.5;
+}
+
+@mixin clearfix() {
+  &:after {
+    content: "";
+    display: block;
+    clear: both;
+    visibility: hidden;
+    line-height: 0;
+    height: 0;
+  }
+}
+
+//
+// --------------------------------------
+//  Appearance
+// --------------------------------------
+//
+
+@mixin square-box($side-width, $side-height: null) {
+  @if $side-height == null {
+    width: $side-width;
+    height: $side-width;
+  } @else {
+    width: $side-width;
+    height: $side-height;
+  }
+}
+
+@mixin circle-box($diameter) {
+  width: $diameter;
+  height: $diameter;
+  border-radius: 50%;
+}
+
+@mixin hide-scrollbar() {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+//
+// --------------------------------------
+//  Animations
+// --------------------------------------
+//
+
+@mixin keyframes($name) {
+  @keyframes #{$name} {
+    @content;
+  }
+}
+
+//
+// --------------------------------------
+//  Checkers and errors
+// --------------------------------------
+//
+
+@mixin if-param-exist-in-map($prop, $mapKey, $map) {
+  @if $prop != null {
+    @if map-has-key(deep-map-has-key('#{$mapKey}', $map), $prop) {
+      @content;
+    } @else {
+      @error "Error: '#{$prop}' in '#{$mapKey}' does not exist";
+    }
+  }
+}

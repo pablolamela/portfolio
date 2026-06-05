@@ -1,0 +1,35 @@
+.ProjectPager {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: use-space('s2');
+}
+
+.ProjectPager_item {
+  display: flex;
+  flex-direction: column;
+}
+
+.ProjectPager_nextBtn {
+  justify-content: flex-end;
+}
+
+.ProjectPager_prevBtn,
+.ProjectPager_nextBtn {
+  color: use-color('primary');
+}
+
+.ProjectPager_caption {
+  font-size: 0.875rem;
+  line-height: 1.2;
+  color: use-color('grey');
+}
+
+@media (max-width: 640px) {
+  .ProjectPager {
+    gap: use-space('s3');
+  }
+  .ProjectPager_item {
+    align-items: stretch;
+  }
+}

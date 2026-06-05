@@ -1,11 +1,10 @@
-@import "../styles/_builders";
 /* Hero React con Spline (desktop/mobile) */
 :root {
   --hero-desktop: 50vh;
   --hero-mobile: 30vh;
 }
 
-.hero {
+.SplineHeroReact {
   width: 100%;
   margin: 0;
   padding: 0;
@@ -13,14 +12,14 @@
   height: var(--hero-mobile);
 }
 
-.viewer {
+.SplineHeroReact_viewer {
   width: 100%;
   height: 100%;
   display: block;
 }
 
 @include for-screens-above("m") {
-  .hero {
+  .SplineHeroReact {
     height: var(--hero-desktop);
   }
 }

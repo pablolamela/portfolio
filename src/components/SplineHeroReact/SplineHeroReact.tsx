@@ -1,6 +1,6 @@
 import React from "react";
 import Spline from "@splinetool/react-spline";
-import styles from "./SplineHeroReact.module.scss";
+import style from "./splineHeroReact.module.scss";
 
 /**
  * Hero React con Spline:
@@ -25,8 +25,8 @@ export default function SplineHeroReact() {
   }, []);
 
   return (
-    <section className={styles.hero} aria-label="Spline Hero (React)">
-      <div className={styles.viewer}>
+    <section className={style.SplineHeroReact} aria-label="Spline Hero (React)">
+      <div className={style.SplineHeroReact_viewer}>
         <Spline scene={isDesktop ? DESKTOP_SCENE : MOBILE_SCENE} />
       </div>
     </section>

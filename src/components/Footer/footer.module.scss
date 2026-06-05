@@ -1,28 +1,28 @@
-.footer {
+.Footer {
   display: flex;
   justify-content: space-between; /* layout_UN9NY6 */
   align-items: baseline;
-  gap: 32px;
-  padding: 120px 0px 16px;
+  gap: use-space('s4');
+  padding: 120px 0 use-space('s2');
   width: 100%;
 }
 
-.inner {
+.Footer_inner {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   width: 100%;
   margin: 0 auto;
-  color: var(--color-primary);
+  color: use-color('primary');
 }
 
-.brand,
-.copy {
+.Footer_brand,
+.Footer_copy {
   font-size: 0.75rem; /* style_494A4Z in Figma */
   line-height: 1.2;
   font-weight: 400;
 }
 
-.copy {
-  color: var(--color-grey);
+.Footer_copy {
+  color: use-color('grey');
 }

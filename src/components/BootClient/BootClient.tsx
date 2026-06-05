@@ -9,8 +9,8 @@ import { useEffect } from "react";
 export default function BootClient() {
   useEffect(() => {
     // Dynamically import to ensure client-only execution
-    void import("../scripts/lenis");
-    void import("../scripts/init-gravity");
+    void import("@/scripts/lenis");
+    void import("@/scripts/init-gravity");
   }, []);
   return null;
 }

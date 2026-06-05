@@ -1,0 +1,12 @@
+---
+import style from "./footer.module.scss";
+
+const year = new Date().getFullYear();
+---
+
+<footer class={style.Footer}>
+  <div class={style.Footer_inner}>
+    <div class={style.Footer_brand}>PL.</div>
+    <div class={style.Footer_copy}>©{year}</div>
+  </div>
+</footer>

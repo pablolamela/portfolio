@@ -1,6 +1,6 @@
 ---
-import Button from "./Button.astro";
-import styles from "./ProjectPager.module.scss";
+import Button from "@/components/Button";
+import style from "./projectPager.module.scss";
 
 type ProjectMeta = {
   slug: string;
@@ -18,7 +18,7 @@ interface Props {
 const { currentSlug } = Astro.props as Props;
 
 // Load all project pages (including hidden), then compute prev/next among visible ones
-const modules = import.meta.glob("../pages/projects/*.astro", { eager: true }) as Record<
+const modules = import.meta.glob("../../pages/projects/*.astro", { eager: true }) as Record<
   string,
   any
 >;
@@ -50,13 +50,13 @@ const prev = currentIndex >= 0 ? findPrevVisible(currentIndex) : undefined;
 const next = currentIndex >= 0 ? findNextVisible(currentIndex) : undefined;
 ---
 
-<section class={styles.section} aria-label="Project pagination">
-  <div class={styles.item}>
-    {prev && <Button class={styles.prevBtn} href={`/projects/${prev.slug}`} label="Previous" />}
-    {prev && <div class={styles.caption}>{prev.title}</div>}
+<section class={style.ProjectPager} aria-label="Project pagination">
+  <div class={style.ProjectPager_item}>
+    {prev && <Button class={style.ProjectPager_prevBtn} href={`/projects/${prev.slug}`} label="Previous" />}
+    {prev && <div class={style.ProjectPager_caption}>{prev.title}</div>}
   </div>
-  <div class={styles.item} style="text-align: right;">
-    {next && <Button class={styles.nextBtn} href={`/projects/${next.slug}`} label="Next" />}
-    {next && <div class={styles.caption}>{next.title}</div>}
+  <div class={style.ProjectPager_item} style="text-align: right;">
+    {next && <Button class={style.ProjectPager_nextBtn} href={`/projects/${next.slug}`} label="Next" />}
+    {next && <div class={style.ProjectPager_caption}>{next.title}</div>}
   </div>
 </section>

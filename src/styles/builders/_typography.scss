@@ -1,0 +1,29 @@
+//
+//////////////////////////////////////////
+//  Typography mixins
+//////////////////////////////////////////
+//
+// Reusable text styles. Match the project's current type scale
+// (Inter Display, body 16/1.5, label 16/1.2, small 14/1.5).
+// Color is intentionally NOT set here: it varies per element
+// (use-color('primary') vs use-color('grey')) and is set at the call site.
+//
+// - body-typo
+// - label-typo
+// - body-small-typo
+
+@mixin body-typo() {
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+@mixin label-typo() {
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 400;
+}
+
+@mixin body-small-typo() {
+  font-size: 14px;
+  line-height: 1.5;
+}

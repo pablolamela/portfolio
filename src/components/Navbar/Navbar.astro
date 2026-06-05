@@ -1,7 +1,7 @@
 ---
-import Button from "./Button.astro";
-import styles from "./Navbar.module.scss";
-import { links } from "../config/site";
+import Button from "@/components/Button";
+import style from "./navbar.module.scss";
+import { links } from "@/config/site";
 
 export interface Props {
   currentPath?: string;
@@ -14,17 +14,17 @@ const contactLabel = isHome ? "Contact" : "Close";
 const contactHref = isHome ? links.mailto : "/";
 ---
 
-<nav class={styles.nav} aria-label="Primary">
-  <div class={styles.inner}>
-    <div class={styles.left}>
-      <Button href="/" label="Pablo Lamela" class={styles.brand} />
+<nav class={style.Navbar} aria-label="Primary">
+  <div class={style.Navbar_inner}>
+    <div class={style.Navbar_left}>
+      <Button href="/" label="Pablo Lamela" class={style.Navbar_brand} />
     </div>
 
-    <div class={styles.center}>
+    <div class={style.Navbar_center}>
       <Button href="/info" label="Info" />
     </div>
 
-    <div class={styles.right}>
+    <div class={style.Navbar_right}>
       <Button href={contactHref} label={contactLabel} />
     </div>
   </div>
