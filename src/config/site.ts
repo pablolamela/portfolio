@@ -1,6 +1,5 @@
 export const site = {
-  // TODO: update with your real email
-  contactEmail: "pablo.lamela50@gmail.com",
+  contactEmail: "pablamela@gmail.com",
 };
 
 export const links = {
