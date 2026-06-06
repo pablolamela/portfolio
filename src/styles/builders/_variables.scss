@@ -15,15 +15,15 @@
 //
 
 $spaces: (
-  's0': 4px,
-  's1': 8px,
-  's2': 16px,
-  's3': 24px,
-  's4': 32px,
-  's5': 40px,
-  's6': 48px,
-  's7': 56px,
-  's8': 64px
+  "s0": 4px,
+  "s1": 8px,
+  "s2": 16px,
+  "s3": 24px,
+  "s4": 32px,
+  "s5": 40px,
+  "s6": 48px,
+  "s7": 56px,
+  "s8": 64px,
 );
 
 //
@@ -33,14 +33,14 @@ $spaces: (
 //
 
 $colors: (
-  'background': #080808,
-  'background-opacity': rgba(8, 8, 8, 0.4),
-  'primary': #f7f7f7,
-  'white': #fff,
-  'black': #000,
-  'grey': #979797,
-  'accent': #ffab6c,
-  'white-opacity': rgba(255, 255, 255, 0.1)
+  "background": #080808,
+  "background-opacity": rgba(8, 8, 8, 0.4),
+  "primary": #f7f7f7,
+  "white": #fff,
+  "black": #000,
+  "grey": #979797,
+  "accent": #ffab6c,
+  "white-opacity": rgba(255, 255, 255, 0.2),
 );
 
 //
@@ -50,10 +50,10 @@ $colors: (
 //
 
 $layers: (
-  'cursor': 1000,
-  'navbar': 100,
-  'overlay': 90,
-  'base': 0
+  "cursor": 1000,
+  "navbar": 100,
+  "overlay": 90,
+  "base": 0,
 );
 
 //
@@ -71,8 +71,8 @@ $navBar-height: 72px;
 //
 
 $radii: (
-  'sm': 4px,
-  'md': 8px,
-  'lg': 16px,
-  'full': 999px
+  "sm": 4px,
+  "md": 8px,
+  "lg": 16px,
+  "full": 999px,
 );

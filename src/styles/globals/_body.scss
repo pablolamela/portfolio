@@ -51,6 +51,17 @@ video {
   border-radius: use-radius('md');
 }
 
+/* Ocultar el cursor nativo cuando el custom está vivo (y en puntero fino). El `*` +
+   !important es necesario para vencer la regla UA `a { cursor: pointer }` (gana por
+   especificidad sobre el `cursor:none` heredado). Gateado en [data-cursor-ready] para no
+   quedarnos sin cursor si el JS falla/tarda o bajo reduced-motion (no se monta el custom). */
+@media (pointer: fine) {
+  html[data-cursor-ready],
+  html[data-cursor-ready] * {
+    cursor: none !important;
+  }
+}
+
 @include for-screens-below("s") {
   :root {
     --hero-section: 30vh;

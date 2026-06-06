@@ -1,21 +1,23 @@
 import gsap from "gsap";
 
 /**
- * Global custom cursor — a decorative follower that trails the native cursor (which
- * stays visible) with a gsap.quickTo lag.
- * - Single anchor (root) animated with gsap.quickTo for a smooth trailing follow.
- * - State (default | grow | project) resolved from the element under the pointer.
- * - The MORPH is GSAP-driven on the dot (real width/height/border-radius + material via
- *   --cursor-blur / --cursor-bg-alpha, NO scale); in the project state the "View Project"
- *   text fades + slides up AFTER the shape finishes morphing into the pill.
- * - Bails on touch (pointer:coarse) and on prefers-reduced-motion (no follower mounted).
+ * Global custom cursor — replaces the native cursor (hidden via cursor:none, gated on
+ * html[data-cursor-ready]). Two follow anchors:
+ * - Precise dot: near-instant follow, marks the exact pointer (high contrast for aiming).
+ * - Ring/root: lagging gsap.quickTo follow; the morphing disc + "View Project" label.
+ * State (default | grow | project) resolved from the element under the pointer. The MORPH
+ * is GSAP-driven on the dot (real width/height/border-radius + material via --cursor-blur /
+ * backgroundColor, NO scale); in project the label fades + slides up after the shape morph.
+ * Bails on touch (pointer:coarse) and on prefers-reduced-motion → data-cursor-ready is never
+ * set, so the native cursor stays (fallback).
  */
 
 type CursorState = "default" | "grow" | "project";
 
-// Geometría/material por estado (px y valores crudos para tween directo).
-const DOT = { size: 20, radius: 10, blur: 8, bgAlpha: 0.4 }; // default: círculo pequeño oscuro
-const GROW = { size: 40, radius: 20, blur: 0, bgAlpha: 0 }; // grow: círculo hueco (transparente, sin blur)
+// Geometría/material por estado. bg = color de fondo (GSAP tweenea backgroundColor como rgba).
+const DOT = { size: 20, radius: 10, blur: 8, bg: "rgba(255, 255, 255, 0.1)" }; // base: blanco translúcido + blur (= use-color('white-opacity'))
+const GROW = { size: 40, radius: 20, blur: 0, bg: "rgba(255, 255, 255, 0)" }; // grow: hueco transparente, sin blur
+const PROJECT_BG = "rgba(8, 8, 8, 0.4)"; // project: pill oscuro (= use-color('background') @ 0.4), sin cambios
 
 const MORPH_DUR = 0.35;
 const LABEL_IN_DUR = 0.25;
@@ -34,11 +36,15 @@ export default function setupCursor(): () => void {
   const dot = root.querySelector<HTMLElement>("[data-cursor-dot]");
   const label = root.querySelector<HTMLElement>("[data-cursor-label]");
   const labelText = root.querySelector<HTMLElement>("[data-cursor-label-text]");
-  if (!dot || !label || !labelText) return () => {};
+  // Anchor independiente (hermano del root, sin su lag).
+  const precise = document.querySelector<HTMLElement>("[data-cursor-precise]");
+  if (!dot || !label || !labelText || !precise) return () => {};
 
   const ctx = gsap.context(() => {
-    const xTo = gsap.quickTo(root, "x", { duration: 0.45, ease: "power3.out" });
+    const xTo = gsap.quickTo(root, "x", { duration: 0.45, ease: "power3.out" }); // aro: lag
     const yTo = gsap.quickTo(root, "y", { duration: 0.45, ease: "power3.out" });
+    const pxTo = gsap.quickTo(precise, "x", { duration: 0.06, ease: "power3.out" }); // punto: casi instantáneo
+    const pyTo = gsap.quickTo(precise, "y", { duration: 0.06, ease: "power3.out" });
 
     let ready = false;
     let lastState: CursorState = "default";
@@ -75,7 +81,7 @@ export default function setupCursor(): () => void {
             height: box.height,
             borderRadius: 8, // md
             "--cursor-blur": DOT.blur,
-            "--cursor-bg-alpha": DOT.bgAlpha,
+            backgroundColor: PROJECT_BG,
             duration: MORPH_DUR,
           })
           .to(labelText, { opacity: 1, y: 0, duration: LABEL_IN_DUR }, "-=0.15");
@@ -93,7 +99,7 @@ export default function setupCursor(): () => void {
               height: target.size,
               borderRadius: target.radius,
               "--cursor-blur": target.blur,
-              "--cursor-bg-alpha": target.bgAlpha,
+              backgroundColor: target.bg,
               duration: MORPH_DUR,
             },
             0
@@ -105,9 +111,13 @@ export default function setupCursor(): () => void {
       if (!ready) {
         ready = true;
         root.style.opacity = "1";
+        precise.style.opacity = "1";
+        document.documentElement.setAttribute("data-cursor-ready", ""); // habilita cursor:none
       }
       xTo(e.clientX);
       yTo(e.clientY);
+      pxTo(e.clientX);
+      pyTo(e.clientY);
 
       const next = resolveState(e.target);
       if (next !== lastState) {
@@ -119,9 +129,13 @@ export default function setupCursor(): () => void {
 
     const onLeave = () => {
       root.style.opacity = "0";
+      precise.style.opacity = "0";
     };
     const onEnter = () => {
-      if (ready) root.style.opacity = "1";
+      if (ready) {
+        root.style.opacity = "1";
+        precise.style.opacity = "1";
+      }
     };
 
     // Estado inicial: el texto parte oculto + desplazado (slide-up listo).
@@ -132,11 +146,12 @@ export default function setupCursor(): () => void {
     document.addEventListener("mouseleave", onLeave);
     document.addEventListener("mouseenter", onEnter);
 
-    // gsap.context revierte tweens/sets; este return limpia los listeners.
+    // gsap.context revierte tweens/sets; este return limpia listeners + el flag de hide.
     return () => {
       window.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseleave", onLeave);
       document.removeEventListener("mouseenter", onEnter);
+      document.documentElement.removeAttribute("data-cursor-ready");
     };
   }, root);
 

@@ -2,7 +2,7 @@
 // estado base y expone los valores dinámicos vía CSS custom properties (excepción
 // documentada en CLAUDE.md para valores controlados por JS).
 $dot-size: 20px; // pequeño (estado default)
-$dot-border: 1.5px;
+$dot-border: 1px;
 
 .Cursor {
   position: fixed;
@@ -35,13 +35,13 @@ $dot-border: 1.5px;
   height: $dot-size;
   border-radius: #{$dot-size * 0.5}; // 10px → circular en default
   --cursor-blur: 8; // px implícitos vía calc; GSAP lo tweenea (8 → 0 → 8)
-  --cursor-bg-alpha: 0.4; // alpha del material oscuro; GSAP lo tweenea (0.4 → 0)
-  // Fondo referenciando el token (sin hardcodear color); solo el alpha es dinámico.
-  background: color-mix(in srgb, use-color('background') calc(var(--cursor-bg-alpha) * 100%), transparent);
+  // Base: blanco translúcido + blur. GSAP tweenea backgroundColor por estado
+  // (base blanco / grow transparente / project oscuro — ver cursor.ts).
+  background: use-color('white-opacity');
   -webkit-backdrop-filter: blur(calc(var(--cursor-blur) * 1px));
   backdrop-filter: blur(calc(var(--cursor-blur) * 1px));
   border: $dot-border solid use-color('white-opacity');
-  will-change: width, height, border-radius, backdrop-filter;
+  will-change: width, height, border-radius, backdrop-filter, background-color;
 }
 
 // Texto "View Project": wrapper centrado (estático) + texto interno que GSAP anima en
@@ -60,9 +60,30 @@ $dot-border: 1.5px;
   will-change: transform, opacity;
 }
 
+// Punto preciso: anchor de tamaño fijo (se centra con margen negativo → transform libre para GSAP).
+// mix-blend-mode: difference lo hace visible sobre cualquier fondo (motivo ya usado en la navbar).
+$precise-size: 6px;
+
+.Cursor_precise {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: $precise-size;
+  height: $precise-size;
+  margin: -#{$precise-size * 0.5} 0 0 -#{$precise-size * 0.5};
+  border-radius: use-radius('full');
+  background: use-color('white');
+  mix-blend-mode: difference;
+  z-index: use-layer('cursor');
+  pointer-events: none;
+  opacity: 0; // hasta el primer move
+  will-change: transform;
+}
+
 // Touch: nunca pinta el cursor custom
 @media (pointer: coarse) {
-  .Cursor {
+  .Cursor,
+  .Cursor_precise {
     display: none;
   }
 }
