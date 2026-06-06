@@ -50,14 +50,25 @@ export default function setupCursor(): () => void {
     let lastState: CursorState = "default";
     let morph: gsap.core.Timeline | null = null;
 
-    // Medida del pill: perezosa (Inter carga vía rsms.me, puede no estar lista al setup).
-    // Se mide en el primer hover de project, con el label maquetado (opacity:0 ≠ display:none).
-    let projectBox: { width: number; height: number } | null = null;
-    const measureProjectBox = () => {
-      if (!projectBox) {
-        projectBox = { width: label.offsetWidth + 32, height: label.offsetHeight + 24 };
-      }
-      return projectBox;
+    // Mensaje bloqueado (p.ej. "Email copied"): mientras está activo, el cursor sigue la
+    // posición pero NO cambia de estado por hover; al expirar vuelve al estado bajo el puntero.
+    let locked = false;
+    let pendingState: CursorState = "default";
+    let messageTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const DEFAULT_LABEL = "View Project";
+    // Medida del pill por texto (perezosa; Inter carga async). Mide poniendo el texto en el
+    // label (white-space:nowrap; el texto oculto por opacity sigue dando offsetWidth) y restaura.
+    const boxCache = new Map<string, { width: number; height: number }>();
+    const measureBox = (text: string) => {
+      const cached = boxCache.get(text);
+      if (cached) return cached;
+      const prev = labelText.textContent;
+      labelText.textContent = text;
+      const box = { width: label.offsetWidth + 32, height: label.offsetHeight + 24 };
+      if (prev !== text) labelText.textContent = prev;
+      boxCache.set(text, box);
+      return box;
     };
 
     const resolveState = (target: EventTarget | null): CursorState => {
@@ -73,7 +84,7 @@ export default function setupCursor(): () => void {
       morph = gsap.timeline({ defaults: { ease: MORPH_EASE, overwrite: "auto" } });
 
       if (next === "project") {
-        const box = measureProjectBox();
+        const box = measureBox(DEFAULT_LABEL);
         // 1) la forma muta (círculo → píldora oscura); 2) luego entra el texto.
         morph
           .to(dot, {
@@ -120,6 +131,10 @@ export default function setupCursor(): () => void {
       pyTo(e.clientY);
 
       const next = resolveState(e.target);
+      if (locked) {
+        pendingState = next; // recuerda a dónde volver; no morphea mientras dura el mensaje
+        return;
+      }
       if (next !== lastState) {
         lastState = next;
         root.setAttribute("data-state", next); // hook de depuración; el SCSS ya no lo lee
@@ -138,6 +153,43 @@ export default function setupCursor(): () => void {
       }
     };
 
+    // Morphea el cursor a la píldora oscura con un mensaje y, al expirar, vuelve al estado
+    // que haya bajo el puntero. Lo dispara mailto-copy.ts vía el evento "cursor:message".
+    const showMessage = (text: string, ms: number) => {
+      if (messageTimer) clearTimeout(messageTimer);
+      if (!locked) pendingState = lastState; // estado actual bajo el puntero (la 1ª vez)
+      locked = true;
+
+      const box = measureBox(text);
+      labelText.textContent = text; // el label está oculto (grow) → sin parpadeo
+      morph?.kill();
+      morph = gsap.timeline({ defaults: { ease: MORPH_EASE, overwrite: "auto" } });
+      morph
+        .to(dot, {
+          width: box.width,
+          height: box.height,
+          borderRadius: 8,
+          "--cursor-blur": DOT.blur,
+          backgroundColor: PROJECT_BG,
+          duration: MORPH_DUR,
+        })
+        .to(labelText, { opacity: 1, y: 0, duration: LABEL_IN_DUR }, "-=0.15");
+
+      messageTimer = setTimeout(() => {
+        locked = false;
+        messageTimer = null;
+        labelText.textContent = DEFAULT_LABEL;
+        lastState = pendingState;
+        root.setAttribute("data-state", pendingState);
+        applyState(pendingState);
+      }, ms);
+    };
+
+    const onMessage = (e: Event) => {
+      const detail = (e as CustomEvent<{ text?: string; ms?: number }>).detail;
+      showMessage(detail?.text ?? "Copied", detail?.ms ?? 1600);
+    };
+
     // Estado inicial: el texto parte oculto + desplazado (slide-up listo).
     gsap.set(labelText, { opacity: 0, y: SLIDE_UP });
     root.setAttribute("data-state", "default");
@@ -145,12 +197,15 @@ export default function setupCursor(): () => void {
     window.addEventListener("mousemove", onMove, { passive: true });
     document.addEventListener("mouseleave", onLeave);
     document.addEventListener("mouseenter", onEnter);
+    window.addEventListener("cursor:message", onMessage);
 
     // gsap.context revierte tweens/sets; este return limpia listeners + el flag de hide.
     return () => {
       window.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseleave", onLeave);
       document.removeEventListener("mouseenter", onEnter);
+      window.removeEventListener("cursor:message", onMessage);
+      if (messageTimer) clearTimeout(messageTimer);
       document.documentElement.removeAttribute("data-cursor-ready");
     };
   }, root);

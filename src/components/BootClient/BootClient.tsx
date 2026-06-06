@@ -13,6 +13,7 @@ export default function BootClient() {
     void import("@/scripts/lenis");
     void import("@/scripts/init-gravity");
     void import("@/scripts/init-cursor");
+    void import("@/scripts/mailto-copy");
   }, []);
   return null;
 }
