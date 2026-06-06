@@ -1,0 +1,39 @@
+.GlyphDither {
+  // Bridge the static Sass palette into CSS vars the inline <script> reads at
+  // runtime (the documented "valores dinámicos por JS" exception). --color-accent
+  // only surfaces on the chromatic fringe of mouse ripples.
+  --color-text: #{use-color('primary')};
+  --color-bg: #{use-color('background')};
+  --color-accent: #{use-color('accent')};
+
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: use-color('background');
+}
+
+.GlyphDither_output {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.GlyphDither_source {
+  position: absolute;
+  top: 0;
+  left: 0;
+  // Off-screen render source for the canvas (transparent). Only drives the
+  // visible "404" size now — the dither cell size is fixed in the script, so a
+  // bigger font means more (same-size) glyphs, not bigger ones.
+  font-family: "Geist Mono", "SF Mono", Monaco, monospace;
+  // vw chosen so "404" fills the viewport width leaving ~the page margin.
+  // Re-tuned for Geist Mono (monospace digits are narrower than Inter).
+  font-size: clamp(7rem, 44.5vw, 48rem);
+  font-weight: 500;
+  line-height: 0.92;
+  color: transparent;
+  pointer-events: none;
+  user-select: none;
+}

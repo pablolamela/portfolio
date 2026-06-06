@@ -1,7 +1,7 @@
 ---
 import "../styles/globals.scss";
 import s from "../styles/notfound.module.scss";
-import Spline404Viewer from "@/components/Spline404";
+import GlyphDither from "@/components/GlyphDither";
 import Button from "@/components/Button";
 const pageTitle = "404 — Página no encontrada";
 ---
@@ -13,19 +13,28 @@ const pageTitle = "404 — Página no encontrada";
     <meta name="viewport" content="width=device-width" />
     <title>{pageTitle}</title>
     <meta name="robots" content="noindex" />
+    <!-- Fonts (standalone page — does not inherit the Base layout head) -->
+    <link rel="preconnect" href="https://rsms.me" crossorigin />
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+    <!-- Geist Mono drives the dithered "404" shape -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap"
+    />
   </head>
-  <body>
-    <main>
-      <section class={s.fourohfour} aria-label="404 Page">
-        <div class={s.digit} aria-hidden="true">4</div>
-        <div class={s.viewer}>
-          <Spline404Viewer client:load />
+  <body class={s.Body}>
+    <main class={s.Main}>
+      <section class={s.fourohfour} aria-label="404 — Página no encontrada">
+        <h1 class={s.srOnly}>404 — Página no encontrada</h1>
+        <div class={s.viewer} aria-hidden="true">
+          <GlyphDither text="404" />
         </div>
-        <div class={s.digit} aria-hidden="true">4</div>
       </section>
 
       <div class={s.message}>
-        <h2 class="label">This is not the page you are looking for</h2>
+        <p class="label">This is not the page you are looking for</p>
         <Button href="/" label="Go back" />
       </div>
     </main>
