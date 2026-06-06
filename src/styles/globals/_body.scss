@@ -45,6 +45,12 @@
   background: use-color('accent');
 }
 
+/* Rounded media across the whole project */
+img,
+video {
+  border-radius: use-radius('md');
+}
+
 @include for-screens-below("s") {
   :root {
     --hero-section: 30vh;

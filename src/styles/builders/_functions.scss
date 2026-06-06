@@ -261,3 +261,12 @@
     @error '#{$key} key does not exist in $layers map';
   }
 }
+
+@function use-radius($key) {
+  @if map-has-key($radii, $key) {
+    $key: map-get($radii, $key);
+    @return $key;
+  } @else {
+    @error '#{$key} key does not exist in $radii map';
+  }
+}

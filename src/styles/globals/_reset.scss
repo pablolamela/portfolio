@@ -21,22 +21,8 @@ html {
   margin: 0;
 }
 
-/* Global radius reset */
-:where(
-  img,
-  video,
-  canvas,
-  iframe,
-  a,
-  button,
-  input,
-  textarea,
-  select,
-  div,
-  section,
-  article,
-  figure
-) {
+/* Reset native control radius only (browsers round these by default) */
+:where(input, textarea, select, button) {
   border-radius: 0 !important;
 }
 

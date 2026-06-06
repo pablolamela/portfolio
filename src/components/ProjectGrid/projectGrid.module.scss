@@ -59,7 +59,7 @@
   gap: use-space('s3');
   width: 100%;
   aspect-ratio: 16/11; /* maintain shape similar to design */
-  border-radius: 0;
+  border-radius: use-radius('md');
 }
 
 .ProjectGrid_thumbImg {
@@ -147,6 +147,7 @@
     font-size: 1rem;
     color: use-color('primary'); /* “black” en globals */
     padding: 12px use-space('s2');
+    border-radius: use-radius('md');
     background: use-color('background-opacity'); /* fondo con opacidad */
     -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
