@@ -1,9 +1,11 @@
 ---
 import Base from "../layouts/Base.astro";
 import Button from "@/components/Button";
+import BootPortrait from "@/components/BootPortrait";
 import s from "../styles/info.module.scss";
 import { Image } from "astro:assets";
-import portrait from "../images/portrait.webp";
+import portraitOn from "../images/portrait-on.webp";
+import portraitOff from "../images/portrait-off.webp";
 ---
 
 <Base title="Info">
@@ -15,14 +17,16 @@ import portrait from "../images/portrait.webp";
     <section class={s.grid}>
       <div class={s.intro}>
         <p>
-          Focused on turning complex systems into clear, scalable experiences. I work on B2B products, data platforms, and AI-driven tools, designing structured user flows, interfaces, and design systems for complex environments.
+          My work is on complex B2B tools and AI-driven products, where most of the problem isn't in the visual layer but in how states, flows, and technical constraints come together.
         </p>
         <p>
-          I collaborate closely with developers throughout the product lifecycle and often work directly in code to build and validate solutions. I also integrate AI into my workflow to accelerate exploration, prototype ideas, and reduce friction between design and implementation.
+          Collaborating closely with developers, I often build directly in code. Technology and design have interested me from the start, and product design is where the two have ended up fitting together.
         </p>
       </div>
-      <div class={s.portrait}>
-        <Image src={portrait} alt="Portrait of Pablo Lamela" loading="eager" />
+      <div class={s.portrait} data-portrait>
+        <Image src={portraitOff} alt="" aria-hidden="true" loading="eager" />
+        <Image class={s.portrait_on} src={portraitOn} alt="Portrait of Pablo Lamela" loading="eager" />
+        <BootPortrait client:load />
       </div>
       <div class={s.links}>
         <Button href="mailto:pablamela@gmail.com" label="Email" />

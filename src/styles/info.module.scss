@@ -41,6 +41,7 @@ body {
 }
 
 .portrait {
+  position: relative;
   grid-area: 2 / 2 / 3 / 3;
 
   img {
@@ -48,6 +49,26 @@ body {
     height: auto;
     display: block;
     object-fit: unset;
+  }
+}
+
+// Capa iluminada superpuesta sobre la silueta: se funde para "encender la luz".
+// El toggle on/off lo hace JS vía data-lit en [data-portrait].
+.portrait_on {
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  transition: opacity 1.4s cubic-bezier(0.22, 0.61, 0.36, 1); // ease lento "luz que sube"
+
+  [data-portrait][data-lit="on"] & {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portrait_on {
+    transition: none; // sin fundido: el script la deja encendida al instante
   }
 }
 
