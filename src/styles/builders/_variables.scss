@@ -39,7 +39,8 @@ $colors: (
   'white': #fff,
   'black': #000,
   'grey': #979797,
-  'accent': #ffab6c
+  'accent': #ffab6c,
+  'white-opacity': rgba(255, 255, 255, 0.1)
 );
 
 //
@@ -49,6 +50,7 @@ $colors: (
 //
 
 $layers: (
+  'cursor': 1000,
   'navbar': 100,
   'overlay': 90,
   'base': 0

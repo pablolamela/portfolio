@@ -92,14 +92,6 @@ const count = projects.length;
       cards.forEach((card) => {
         const video = card.querySelector("[data-thumb-video]");
 
-        const onMove = (e) => {
-          const rect = card.getBoundingClientRect();
-          const x = e.clientX - rect.left;
-          const y = e.clientY - rect.top;
-          card.style.setProperty("--x", x + "px");
-          card.style.setProperty("--y", y + "px");
-        };
-
         if (video) {
           const markPainted = () => card.setAttribute("data-painted", "1");
 
@@ -272,13 +264,9 @@ const count = projects.length;
               video.currentTime = Math.min(0.05, (video.duration || 0.06) - 0.01);
             } catch {}
           }
-          // Opcional: limpiar variables si sales de la card
-          // card.style.removeProperty("--x");
-          // card.style.removeProperty("--y");
         };
 
         card.addEventListener("mouseenter", onEnter);
-        card.addEventListener("mousemove", onMove);
         card.addEventListener("mouseleave", onLeave);
         // Refuerzo: también cancelar hover en pointerleave/cancel
         card.addEventListener("pointerleave", onLeave);

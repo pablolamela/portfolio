@@ -5,12 +5,14 @@ import { useEffect } from "react";
  * so they bundle correctly for production without SSR side-effects.
  * - lenis.ts (smooth scroll)
  * - init-gravity.ts (gyroscope effect initializer)
+ * - init-cursor.ts (global custom cursor)
  */
 export default function BootClient() {
   useEffect(() => {
     // Dynamically import to ensure client-only execution
     void import("@/scripts/lenis");
     void import("@/scripts/init-gravity");
+    void import("@/scripts/init-cursor");
   }, []);
   return null;
 }

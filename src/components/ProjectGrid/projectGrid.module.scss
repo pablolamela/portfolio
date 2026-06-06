@@ -39,16 +39,12 @@
 }
 
 .ProjectGrid_card {
-  position: relative; /* para el cursor custom */
+  position: relative; /* stack del thumb */
   display: flex;
   flex-direction: column; /* layout_YSIDIS */
   gap: use-space('s1');
   text-decoration: none;
   color: inherit;
-
-  /* Variables CSS para posicionar el cursor custom */
-  --x: 0px;
-  --y: 0px;
 }
 
 .ProjectGrid_thumb {
@@ -124,44 +120,4 @@
 .ProjectGrid_skills {
   @include body-small-typo();
   color: use-color('grey');
-}
-
-/* Custom cursor inside each project card */
-@media (pointer: fine) {
-  /* Oculta el cursor nativo mientras está activo el cursor custom */
-  .ProjectGrid_card[data-hover] {
-    cursor: none;
-  }
-
-  /* Rectángulo flotante que sigue al puntero */
-  .ProjectGrid_card::after {
-    content: "View Project";
-    position: absolute;
-    top: var(--y);
-    left: var(--x);
-    transform: translate(-50%, -50%);
-    pointer-events: none;
-    z-index: 3;
-
-    /* Estilo según requisitos */
-    font-size: 1rem;
-    color: use-color('primary'); /* “black” en globals */
-    padding: 12px use-space('s2');
-    border-radius: use-radius('md');
-    background: use-color('background-opacity'); /* fondo con opacidad */
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
-
-    display: block;
-    opacity: 0;
-    transition: opacity 120ms ease;
-    white-space: nowrap;
-    line-height: 1;
-    text-align: center;
-  }
-
-  /* Mostrar el cursor custom cuando está activo (data-hover) */
-  .ProjectGrid_card[data-hover]::after {
-    opacity: 1;
-  }
 }
