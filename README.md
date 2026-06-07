@@ -1,43 +1,51 @@
-# Astro Starter Kit: Minimal
+# pablolamela.com
 
-```sh
-npm create astro@latest -- --template minimal
-```
+Personal portfolio of Pablo Lamela — live at **[pablolamela.com](https://pablolamela.com)**.
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+Built with Astro for fast static delivery, with React reserved for interactive
+islands and client-side script boot. Motion is handled by GSAP and Lenis
+smooth scroll.
 
-## 🚀 Project Structure
+## Tech stack
 
-Inside of your Astro project, you'll see the following folders and files:
+- **[Astro 5](https://astro.build)** + **TypeScript** — static site, file-based routing
+- **Dart Sass** + native **CSS Modules** (Vite) — design tokens via Sass maps, BEM-ish naming
+- **React 19** — interactive islands only (client-side script boot)
+- **[GSAP](https://gsap.com)** — animations · **[Lenis](https://lenis.darkroom.engineering)** — smooth scroll · **split-type** — variable-weight hero effect
+- **Prettier** — formatting
+
+## Project structure
 
 ```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
+src/
+├── components/   # one folder per component (.astro / .tsx island + .module.scss + index.ts barrel)
+├── layouts/      # Base.astro — root layout, imports globals.scss once
+├── pages/        # .astro routes
+├── styles/       # Sass builders (tokens, mixins, functions), globals, page-level *.module.scss
+├── scripts/      # client JS (lenis, gsap gravity, hover)
+└── data/ config/ images/ videos/
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+Path aliases: `@` → `src`, `~` → project root.
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+## Commands
 
-Any static assets, like images, can be placed in the `public/` directory.
+| Command            | Action                                       |
+| :----------------- | :------------------------------------------- |
+| `npm install`      | Install dependencies                         |
+| `npm run dev`      | Start dev server at `localhost:4321`         |
+| `npm run build`    | Build production site to `./dist/`           |
+| `npm run preview`  | Preview the production build locally         |
+| `npm run format`   | Format the codebase with Prettier            |
+| `npm run astro ...`| Run Astro CLI commands (`astro add`, `check`)|
 
-## 🧞 Commands
+## Conventions
 
-All commands are run from the root of the project, from a terminal:
+Styling and component conventions (Sass tokens, CSS Modules naming, breakpoint
+mixins, animation rules) are documented in [`CLAUDE.md`](./CLAUDE.md).
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+## Deployment
 
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+Deployed to **[pablolamela.com](https://pablolamela.com)** via GitHub Pages.
+The workflow in [`.github/workflows/pages.yml`](.github/workflows/pages.yml)
+builds and deploys on every push to `main`.
