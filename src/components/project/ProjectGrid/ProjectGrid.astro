@@ -17,7 +17,7 @@ type ProjectMeta = {
   showInHome?: boolean; // opcional: si es false, no aparece en la grid de Home
 };
 
-const modules = await Astro.glob("../../pages/projects/*.astro");
+const modules = await Astro.glob("../../../pages/projects/*.astro");
 const projects = modules
   .map((m) => (m as unknown as { project?: ProjectMeta }).project)
   .filter((p): p is ProjectMeta => Boolean(p))
