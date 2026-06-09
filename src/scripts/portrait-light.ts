@@ -1,8 +1,9 @@
 /**
  * Retrato que "cobra vida": la silueta vive siempre debajo y la capa iluminada
  * (.portrait_on) se enciende con un fundido lento cuando el retrato entra en
- * viewport, y se apaga al salir. La primera aparición espera una breve pausa
- * para que parezca que la luz se enciende sola tras cargar.
+ * viewport, y se apaga al salir. Cada aparición en viewport espera INVIEW_DELAY
+ * antes de encenderse. Al hacer hover se apaga tras HOVER_DELAY; al salir del
+ * hover vuelve a encenderse si sigue en viewport.
  * - El toggle es solo data-lit en [data-portrait]; el fundido lo hace CSS.
  * - prefers-reduced-motion (o sin IntersectionObserver): se queda encendido,
  *   sin animación ni observer.
@@ -17,34 +18,60 @@ export default function setupPortraitLight(): () => void {
     return () => {};
   }
 
-  const FIRST_DELAY = 600; // pausa inicial: "se enciende sola" tras cargar
-  let first = true;
-  let timer: number | undefined;
+  const INVIEW_DELAY = 600;
+  const HOVER_DELAY = 400;
+
+  let isInView = false;
+  let inviewTimer: number | undefined;
+  let hoverTimer: number | undefined;
 
   const io = new IntersectionObserver(
     (entries) => {
       const entry = entries[0];
       if (entry.isIntersecting) {
-        const delay = first ? FIRST_DELAY : 0;
-        first = false;
-        timer = window.setTimeout(() => {
+        isInView = true;
+        window.clearTimeout(inviewTimer);
+        inviewTimer = window.setTimeout(() => {
           root.dataset.lit = "on";
-        }, delay);
+        }, INVIEW_DELAY);
       } else {
-        if (timer) {
-          window.clearTimeout(timer);
-          timer = undefined;
-        }
+        isInView = false;
+        window.clearTimeout(inviewTimer);
+        window.clearTimeout(hoverTimer);
         root.dataset.lit = "off";
       }
     },
     { threshold: 0.65 }
   );
 
+  function onMouseEnter() {
+    window.clearTimeout(inviewTimer);
+    window.clearTimeout(hoverTimer);
+    hoverTimer = window.setTimeout(() => {
+      root.dataset.lit = "off";
+    }, HOVER_DELAY);
+  }
+
+  function onMouseLeave() {
+    window.clearTimeout(hoverTimer);
+    if (isInView) root.dataset.lit = "on";
+  }
+
+  // Hover sobre las imágenes, no el contenedor del grid (que es más grande)
+  const imgs = Array.from(root.querySelectorAll<HTMLElement>("img"));
+  imgs.forEach((img) => {
+    img.addEventListener("mouseenter", onMouseEnter);
+    img.addEventListener("mouseleave", onMouseLeave);
+  });
   io.observe(root);
 
   return () => {
     io.disconnect();
-    if (timer) window.clearTimeout(timer);
+    window.clearTimeout(inviewTimer);
+    window.clearTimeout(hoverTimer);
+    imgs.forEach((img) => {
+      img.removeEventListener("mouseenter", onMouseEnter);
+      img.removeEventListener("mouseleave", onMouseLeave);
+    });
   };
 }
