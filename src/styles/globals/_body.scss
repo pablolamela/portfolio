@@ -9,9 +9,9 @@
 // values remain as CSS custom properties — the project's documented exception.
 
 :root {
-  /* Default font: Inter Display (static, non-variable), weight 400 */
+  /* Default font: Geist (body); Inter var se mantiene cargado solo para el hero */
   font-family:
-    "Inter var",
+    "Geist",
     system-ui,
     -apple-system,
     "Segoe UI",
@@ -87,9 +87,9 @@ video {
 /* Use variable font if supported */
 @supports (font-variation-settings: normal) {
   :root {
-    /* Keep static Inter Display even if variable fonts are supported */
+    /* Geist soporta variable fonts; Inter var se reserva para el hero */
     font-family:
-      "Inter var",
+      "Geist",
       system-ui,
       -apple-system,
       sans-serif;

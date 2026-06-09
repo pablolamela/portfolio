@@ -20,7 +20,7 @@
 }
 
 .ProjectGrid_count {
-  @include body-typo();
+  @include mono-typo();
   color: use-color('grey');
 }
 

@@ -18,9 +18,7 @@
 
 .Footer_brand,
 .Footer_copy {
-  font-size: 0.75rem; /* style_494A4Z in Figma */
-  line-height: 1.2;
-  font-weight: 400;
+  @include mono-typo(); /* style_494A4Z in Figma */
 }
 
 .Footer_copy {

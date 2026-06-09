@@ -16,6 +16,7 @@ section.hero {
     max-width: 1200px;
   }
   h1 {
+    font-family: "Inter var", sans-serif; /* variable-weight effect requiere Inter */
     font-size: clamp(1rem, 5cqw, 4.5rem);
     line-height: 1;
     white-space: nowrap;
@@ -67,7 +68,7 @@ section.hero {
 /* Text styles */
 .Label,
 .label {
-  @include label-typo();
+  @include title-typo();
 }
 
 .body {
