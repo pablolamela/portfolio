@@ -7,12 +7,12 @@
 
   position: relative;
   width: 100%;
-  // Primer hijo de main (padding-top: --space-120) bajo la navbar → el hero
-  // remata en el fold. Fondo uniforme: la diferencia entre $navBar-height y la
-  // altura real de la navbar es invisible.
-  height: calc(100svh - var(--nav-h, 72px) - var(--space-120));
-  min-height: 420px; // suelo para landscape bajos
+  height: 50vh; // misma altura que el hero anterior
   overflow: hidden;
+
+  @include for-screens-below('s') {
+    height: 30vh;
+  }
 }
 
 .HeroScramble_canvas {
@@ -38,9 +38,6 @@
 
   p {
     margin: 0;
-    color: use-color('grey');
-  }
-  p:first-child {
     color: use-color('primary');
     font-weight: 500;
   }
