@@ -3,12 +3,13 @@ export interface Props {
   title?: string;
 }
 import "../styles/globals.scss";
-import Navbar from "@/components/Navbar";
-import ProgressiveBlurTop from "@/components/ProgressiveBlurTop";
-import Footer from "@/components/Footer";
-import BootClient from "@/components/BootClient";
-import CustomCursor from "@/components/CustomCursor";
-import Toast from "@/components/Toast";
+import { ClientRouter } from "astro:transitions";
+import Navbar from "@/components/layout/Navbar";
+import ProgressiveBlurTop from "@/components/layout/ProgressiveBlurTop";
+import Footer from "@/components/layout/Footer";
+import BootClient from "@/components/boot/BootClient";
+import CustomCursor from "@/components/fx/CustomCursor";
+import Toast from "@/components/ui/Toast";
 const siteTitle = "Pablo Lamela - Portfolio";
 ---
 
@@ -18,9 +19,14 @@ const siteTitle = "Pablo Lamela - Portfolio";
     <link rel="icon" type="image/svg+xml" href={`${import.meta.env.BASE_URL}favicon.svg`} />
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
+    <ClientRouter />
     <title>Pablo Lamela - Portfolio</title>
 
-    <!-- Inter font (Display via variable font) -->
+    <!-- Geist + Geist Mono (body & labels) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap">
+    <!-- Inter var (solo hero — variable-weight effect) -->
     <link rel="preconnect" href="https://rsms.me" crossorigin>
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
     <meta
@@ -54,7 +60,7 @@ const siteTitle = "Pablo Lamela - Portfolio";
     <meta name="twitter:image:alt" content="Pablo Lamela - Portfolio Open Graph image" />
 
     <slot name="head" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://rsms.me; font-src 'self' https://rsms.me data:; img-src 'self' data: blob:; connect-src 'self'; media-src 'self' blob:; frame-src 'self'; worker-src 'self' blob:; base-uri 'self'; form-action 'self'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://rsms.me https://fonts.googleapis.com; font-src 'self' https://rsms.me https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self'; media-src 'self' blob:; frame-src 'self'; worker-src 'self' blob:; base-uri 'self'; form-action 'self'">
   </head>
   <body>
     <Navbar currentPath={Astro.url.pathname} />
@@ -63,6 +69,7 @@ const siteTitle = "Pablo Lamela - Portfolio";
     <Footer />
     <CustomCursor />
     <Toast />
-    <BootClient client:load />
+    <div data-page-fade aria-hidden="true" transition:persist="page-fade"></div>
+    <BootClient client:load transition:persist="boot" />
   </body>
 </html>

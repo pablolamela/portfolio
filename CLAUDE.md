@@ -1,6 +1,6 @@
 # CLAUDE.md — Sass + CSS Modules + Component Conventions (Astro)
 
-Reglas de estilo y organización de este portfolio. Stack: **Astro 5 + TypeScript** con **Dart Sass** y **CSS Modules** nativos de Vite. React se usa **solo para islas interactivas** (visores Spline, boot de scripts cliente). Prioriza KISS: no añadas abstracciones hasta que se justifiquen con uso real.
+Reglas de estilo y organización de este portfolio. Stack: **Astro 5 + TypeScript** con **Dart Sass** y **CSS Modules** nativos de Vite. React se usa **solo para islas interactivas** (boot de scripts cliente). Prioriza KISS: no añadas abstracciones hasta que se justifiquen con uso real.
 
 > Este archivo adapta el sistema portable del scaffold (`_scaffold/CLAUDE.md`, pensado para Vite+React) a **Astro**. Donde Astro difiere de Vite puro, manda lo documentado aquí.
 
@@ -9,10 +9,11 @@ Reglas de estilo y organización de este portfolio. Stack: **Astro 5 + TypeScrip
 ```
 src/
   components/
-    <ComponentName>/
-      <ComponentName>.astro | .tsx
-      <componentName>.module.scss
-      index.ts                    ← barrel: export { default } from './X.astro' (o './X' para .tsx)
+    <category>/                   ← boot | fx | layout | project | ui (agrupadas por feature)
+      <ComponentName>/
+        <ComponentName>.astro | .tsx
+        <componentName>.module.scss
+        index.ts                  ← barrel: export { default } from './X.astro' (o './X' para .tsx)
   layouts/
     Base.astro                    ← layout raíz; importa globals.scss una sola vez
   pages/                          ← rutas .astro (componen layout + componentes)
@@ -37,15 +38,16 @@ El builder entry **se auto-inyecta** en cada `.scss` vía `astro.config.mjs → 
 
 ## Componentes
 
+- **Agrupadas por feature en una categoría.** Cada componente vive en `components/<categoría>/<ComponentName>/`. Categorías actuales: `boot/` (islas de arranque cliente), `fx/` (efectos/interacción), `layout/` (chrome: navbar, footer, blur), `project/` (listado y navegación de proyectos), `ui/` (primitivas: button, toast). Agrupa por feature, **no** por nivel de abstracción; añade una categoría solo cuando se justifique.
 - **Una carpeta por componente.** Carpeta en `PascalCase`. Archivo `.astro` (o `.tsx` para islas React) con el mismo nombre. Archivo `.module.scss` en `camelCase` (`navbar.module.scss`).
-- **`index.ts` barrel:** `export { default } from './ComponentName.astro';` (para `.tsx`, sin extensión: `from './ComponentName'`). Permite imports limpios con alias: `import Navbar from '@/components/Navbar'`.
+- **`index.ts` barrel:** `export { default } from './ComponentName.astro';` (para `.tsx`, sin extensión: `from './ComponentName'`). Permite imports limpios con alias: `import Navbar from '@/components/layout/Navbar'`.
 - **Default export** del componente. Props tipadas inline (`export interface Props` en `.astro`, `type Props` en `.tsx`).
 - **Sub-componentes acoplados** viven en la misma carpeta. Si se reusan fuera, sácalos a su propia carpeta.
 
 ## Alias de imports
 
 `astro.config.mjs` (vite.resolve.alias) + `tsconfig.json` (paths) definen:
-- `@` → `src` — úsalo para cruzar carpetas: `import Button from '@/components/Button'`, `import { links } from '@/config/site'`, `import('@/scripts/lenis')`.
+- `@` → `src` — úsalo para cruzar carpetas: `import Button from '@/components/ui/Button'`, `import { links } from '@/config/site'`, `import('@/scripts/lenis')`.
 - `~` → raíz del proyecto.
 - Relativo (`./x.module.scss`) solo dentro de la misma carpeta.
 - **Astro.glob / import.meta.glob NO admiten alias** → usa rutas relativas (`../../pages/projects/*.astro`).

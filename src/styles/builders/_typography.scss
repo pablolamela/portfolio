@@ -3,13 +3,18 @@
 //  Typography mixins
 //////////////////////////////////////////
 //
-// Reusable text styles. Match the project's current type scale
-// (Inter Display, body 16/1.5, label 16/1.2, small 14/1.5).
-// Color is intentionally NOT set here: it varies per element
-// (use-color('primary') vs use-color('grey')) and is set at the call site.
+// Reusable text styles. Type scale:
+// - body / body-small → Geist, 16px/14px
+// - title            → Geist, 16px (h1/h2/h3, navbar brand, .Label)
+// - mono             → Geist Mono, 12px (base: footer)
+// - label            → mono + uppercase (botones, nav items)
+// - hero h1          → Inter var (excepción: variable-weight effect)
+// Color intentionally NOT set here — se fija en el call site.
 //
 // - body-typo
-// - label-typo
+// - title-typo
+// - mono-typo
+// - label-typo       (@include mono-typo + uppercase)
 // - body-small-typo
 
 @mixin body-typo() {
@@ -17,10 +22,23 @@
   line-height: 1.5;
 }
 
-@mixin label-typo() {
+@mixin title-typo() {
+  font-family: "Geist", sans-serif;
   font-size: 16px;
   line-height: 1.2;
   font-weight: 400;
+}
+
+@mixin mono-typo() {
+  font-family: "Geist Mono", monospace;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 400;
+}
+
+@mixin label-typo() {
+  @include mono-typo();
+  text-transform: uppercase;
 }
 
 @mixin body-small-typo() {

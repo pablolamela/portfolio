@@ -1,0 +1,14 @@
+---
+import s from "./customCursor.module.scss";
+---
+
+<!-- Hooks data-* estables: el script selecciona por ellos (las clases de módulo van hasheadas).
+     El dot es la ÚNICA forma que muta (tamaño/radio/material); el label es texto encima. -->
+<div data-cursor-root class={s.Cursor} aria-hidden="true" transition:persist="cursor-root">
+  <span data-cursor-dot class={s.Cursor_dot}></span>
+  <span data-cursor-label class={s.Cursor_label}>
+    <span data-cursor-label-text class={s.Cursor_labelText}>View Project</span>
+  </span>
+</div>
+<!-- Punto preciso: anchor independiente (sin el lag del root), marca la posición exacta -->
+<span data-cursor-precise class={s.Cursor_precise} aria-hidden="true" transition:persist="cursor-precise"></span>

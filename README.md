@@ -18,7 +18,7 @@ smooth scroll.
 
 ```text
 src/
-├── components/   # one folder per component (.astro / .tsx island + .module.scss + index.ts barrel)
+├── components/   # grouped by feature (boot/ fx/ layout/ project/ ui/); one folder per component (+ .module.scss + index.ts barrel)
 ├── layouts/      # Base.astro — root layout, imports globals.scss once
 ├── pages/        # .astro routes
 ├── styles/       # Sass builders (tokens, mixins, functions), globals, page-level *.module.scss

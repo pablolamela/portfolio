@@ -1,0 +1,123 @@
+.ProjectGrid {
+  display: flex;
+  flex-direction: column;
+  gap: use-space('s5'); /* layout_Z58JT0 spacing between title and grid */
+  width: 100%;
+}
+
+.ProjectGrid_header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between; /* layout_HANCDF */
+  h2 {
+    margin-bottom: 0;
+  }
+}
+
+.ProjectGrid_title {
+  @include body-typo();
+  color: use-color('primary');
+}
+
+.ProjectGrid_count {
+  @include mono-typo();
+  color: use-color('grey');
+}
+
+.ProjectGrid_grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  row-gap: use-space('s5'); /* layout_FZKC5M */
+  column-gap: use-space('s3');
+  width: 100%;
+}
+
+@include for-screens-below("l") {
+  .ProjectGrid_grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ProjectGrid_card {
+  position: relative; /* stack del thumb */
+  display: flex;
+  flex-direction: column; /* layout_YSIDIS */
+  gap: use-space('s1');
+  text-decoration: none;
+  color: inherit;
+}
+
+.ProjectGrid_thumb {
+  position: relative; /* stack poster/video */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column; /* layout_KM3L53 */
+  gap: use-space('s3');
+  width: 100%;
+  aspect-ratio: 16/11; /* maintain shape similar to design */
+  border-radius: use-radius('md');
+}
+
+.ProjectGrid_thumbImg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 1; /* ensure image fully visible by default */
+  transition: opacity 200ms ease;
+}
+
+.ProjectGrid_thumbVideo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0; /* hidden by default to avoid overlay with image */
+  transition: opacity 200ms ease;
+  pointer-events: none;
+}
+
+/* Phase 1 on hover: show the video (poster still visible until phase 2) */
+.ProjectGrid_card[data-video-in] .ProjectGrid_thumbVideo {
+  opacity: 1;
+}
+/* Keep poster visible during phase 1; fade it only in phase 2 */
+.ProjectGrid_card[data-video-in] .ProjectGrid_thumbImg {
+  opacity: 1;
+}
+
+/* Safety: ensure video is visible on hover even if painted flag delays */
+.ProjectGrid_card[data-hover] .ProjectGrid_thumbVideo {
+  opacity: 1;
+}
+.ProjectGrid_card[data-hover][data-painted] .ProjectGrid_thumbVideo {
+  opacity: 1;
+}
+
+.ProjectGrid_card[data-hover][data-painted] .ProjectGrid_thumbImg {
+  opacity: 0;
+}
+
+@media (pointer: coarse) {
+  .ProjectGrid_thumbVideo {
+    display: none;
+  }
+}
+
+.ProjectGrid_info {
+  display: flex;
+  flex-direction: column; /* layout_TCD36R */
+}
+
+.ProjectGrid_cardTitle {
+  @include body-typo();
+  color: use-color('primary');
+}
+
+.ProjectGrid_skills {
+  @include body-small-typo();
+  color: use-color('grey');
+}

@@ -1,13 +1,18 @@
 import gsap from "gsap";
+import { scramble } from "@/scripts/scramble";
 
 /**
  * Intercepta cada <a href="mailto:…">: copia la dirección al portapapeles en vez de abrir el
- * cliente de correo (preventDefault). El feedback se enruta con la única fuente de verdad
- * html[data-cursor-ready]:
- *  - cursor custom vivo → evento "cursor:message" (el cursor morphea a la píldora oscura).
- *  - si no (touch / reduced-motion / cursor aún no listo) → toast inferior.
+ * cliente de correo (preventDefault). El feedback se enruta con las mismas condiciones que
+ * cursor.ts al inicializarse (pointer:fine + !prefers-reduced-motion):
+ *  - desktop/cursor activo → evento "cursor:message" (el cursor morphea a la píldora oscura).
+ *  - touch / reduced-motion → toast inferior.
  * El toast es además el anunciador aria-live en AMBOS caminos (el cursor es aria-hidden).
  * Mejora progresiva: sin JS los enlaces son mailto: reales y funcionan de forma nativa.
+ *
+ * Guard de inicialización única (window.__mailtoInit): Astro ClientRouter puede re-ejecutar
+ * scripts en navegación SPA y Vite HMR puede re-correr el módulo sin limpiar listeners viejos.
+ * El flag en window garantiza que solo se registra un listener de click y un handler de swap.
  */
 
 const FEEDBACK_TEXT = "Email copied";
@@ -54,8 +59,12 @@ const copy = async (text: string): Promise<boolean> => {
 
 // --- Toast (primario en touch / fallback en desktop) -----------------------------------
 // Elementos resueltos de forma perezosa: BootClient corre tras montar el layout.
+// El texto visible (scramble, aria-hidden) y el texto anunciado (sr-only, limpio) están
+// separados: scramblear la región aria-live haría que el lector anunciara basura.
 let toastRoot: HTMLElement | null = null;
 let toastPill: HTMLElement | null = null;
+let toastText: HTMLElement | null = null;
+let toastSr: HTMLElement | null = null;
 let toastTl: gsap.core.Timeline | null = null;
 
 const SLIDE_IN = 20; // px, la píldora entra desde abajo
@@ -67,25 +76,28 @@ const HOLD_S = (FEEDBACK_MS - (IN_DUR + OUT_DUR) * 1000) / 1000;
 const resolveToastEls = (): boolean => {
   if (!toastRoot) toastRoot = document.querySelector<HTMLElement>("[data-toast-root]");
   if (!toastPill) toastPill = toastRoot?.querySelector<HTMLElement>("[data-toast-pill]") ?? null;
-  return !!(toastRoot && toastPill);
+  if (!toastText) toastText = toastRoot?.querySelector<HTMLElement>("[data-toast-text]") ?? null;
+  if (!toastSr) toastSr = toastRoot?.querySelector<HTMLElement>("[data-toast-sr]") ?? null;
+  return !!(toastRoot && toastPill && toastText && toastSr);
 };
 
-// Actualiza el texto del aria-live (re-set dispara el anuncio) sin animar el toast.
+// Actualiza el texto anunciado a lectores de pantalla (re-set dispara el aria-live) sin animar.
 const announce = (text: string) => {
-  if (resolveToastEls() && toastPill) toastPill.textContent = text;
+  if (resolveToastEls() && toastSr) toastSr.textContent = text;
 };
 
 const showToast = (text: string) => {
-  if (!resolveToastEls() || !toastRoot || !toastPill) return;
+  if (!resolveToastEls() || !toastRoot || !toastPill || !toastText || !toastSr) return;
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  toastPill.textContent = text; // re-set → re-dispara aria-live en copias repetidas
+  toastSr.textContent = text; // re-set → re-dispara aria-live en copias repetidas
   toastRoot.style.visibility = "visible";
 
   toastTl?.kill();
   toastTl = gsap.timeline();
 
   if (reduced) {
+    toastText.textContent = text; // sin scramble: texto directo
     toastTl
       .set(toastPill, { y: 0, opacity: 1 })
       .set(toastPill, { opacity: 0 }, `+=${HOLD_S}`)
@@ -93,12 +105,15 @@ const showToast = (text: string) => {
     return;
   }
 
+  // La píldora hace su fade+slide (in/out). El texto interno scramblea al entrar (speed alta
+  // para que se vea en la ventana corta) y sale con fade simple, igual que el cursor.
   toastTl
     .fromTo(
       toastPill,
       { opacity: 0, y: SLIDE_IN },
       { opacity: 1, y: 0, duration: IN_DUR, ease: "power3.out" },
     )
+    .to(toastText, { duration: IN_DUR, ease: "none", scrambleText: scramble(text, 1.5) }, "<")
     .to(toastPill, { opacity: 0, y: SLIDE_IN, duration: OUT_DUR, ease: "power2.in" }, `+=${HOLD_S}`)
     .set(toastRoot, { visibility: "hidden" });
 };
@@ -116,7 +131,13 @@ const onClick = (e: MouseEvent) => {
 
   void copy(email).then((ok) => {
     if (!ok) return; // copia fallida → sin feedback falso
-    if (document.documentElement.hasAttribute("data-cursor-ready")) {
+    // Mismo gate que cursor.ts: fine pointer + sin reduced-motion = cursor custom activo.
+    // No se usa data-cursor-ready porque ese atributo se pone en el primer mousemove, lo que
+    // provoca que un click sin movimiento previo caiga erróneamente al toast de mobile.
+    const hasCursor =
+      window.matchMedia("(pointer: fine)").matches &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (hasCursor) {
       window.dispatchEvent(
         new CustomEvent("cursor:message", { detail: { text: FEEDBACK_TEXT, ms: FEEDBACK_MS } }),
       );
@@ -127,4 +148,21 @@ const onClick = (e: MouseEvent) => {
   });
 };
 
-document.addEventListener("click", onClick);
+// Guard: solo inicializar una vez aunque el módulo se re-ejecute (HMR / nav SPA).
+// Usamos window como storage persistente entre re-ejecuciones del módulo.
+const _KEY = "__mailtoInit";
+if (!(window as any)[_KEY]) {
+  (window as any)[_KEY] = true;
+
+  document.addEventListener("click", onClick);
+
+  // Limpiar el toast al salir de la página: el elemento persiste via transition:persist,
+  // así que una animación en curso seguiría corriendo (y mostrando el toast) en la nueva página.
+  document.addEventListener("astro:before-swap", () => {
+    toastTl?.kill();
+    toastTl = null;
+    if (toastRoot) gsap.set(toastRoot, { visibility: "hidden" });
+    if (toastPill) gsap.set(toastPill, { opacity: 0, y: 0 });
+    if (toastText) toastText.textContent = "";
+  });
+}

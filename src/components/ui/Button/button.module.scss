@@ -1,0 +1,20 @@
+.Button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px; /* matches Figma spacing */
+  padding: use-space('s2') 0; /* from layout_M55I9A */
+  color: use-color('white');
+  text-decoration: none;
+  @include label-typo();
+  transition: opacity 120ms ease;
+}
+
+.Button:hover {
+  opacity: 0.6;
+}
+
+.Button_row {
+  display: inline-flex;
+  align-items: center;
+  gap: use-space('s3'); /* general nav gap */
+}

@@ -1,0 +1,43 @@
+// Contenedor a lo ancho, anclado abajo: centra la píldora por flex (sin transform → GSAP
+// es dueño del transform). Oculto hasta que mailto-copy.ts lo muestra.
+.Toast {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: var(--space-40);
+  z-index: use-layer('toast');
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  visibility: hidden; // aria-live sigue leyéndose aunque esté oculto
+}
+
+// Mismo material que la píldora del cursor (dark + blur + borde + radio md + texto primary).
+// Misma tipografía que botones/nav (Geist Mono mayúsculas) → paridad con el label del cursor.
+.Toast_pill {
+  background: use-color('background-opacity');
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px solid use-color('white-opacity');
+  border-radius: use-radius('md');
+  color: use-color('primary');
+  padding: use-space('s2') use-space('s3');
+  @include label-typo();
+  white-space: nowrap;
+  text-align: center;
+  opacity: 0; // GSAP lo revela
+  will-change: transform, opacity;
+}
+
+// Texto limpio solo para lectores de pantalla (el visible scramblea, aria-hidden).
+.Toast_sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}

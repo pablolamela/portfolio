@@ -1,0 +1,35 @@
+---
+import Button from "@/components/ui/Button";
+import style from "./navbar.module.scss";
+import { links } from "@/config/site";
+
+export interface Props {
+  currentPath?: string;
+}
+
+const { currentPath = "/" } = Astro.props;
+const isHome = currentPath === "/";
+
+const contactLabel = isHome ? "Contact" : "Close";
+const contactHref = isHome ? links.mailto : "/";
+---
+
+<nav class={style.Navbar} aria-label="Primary" transition:persist="navbar">
+  <div class={style.Navbar_inner}>
+    <div class={style.Navbar_left}>
+      <Button href="/" label="Pablo Lamela" class={style.Navbar_brand} />
+    </div>
+
+    <div class={style.Navbar_center}>
+      <Button href="/info" label="Info" />
+    </div>
+
+    <div class={style.Navbar_right}>
+      <!-- data-nav-action: hook estable para el scramble Contact↔Close (las clases
+           de CSS Modules van hasheadas y no son fiables como selector JS). -->
+      <span class={style.Navbar_action} data-nav-action data-contact-href={links.mailto}>
+        <Button href={contactHref} label={contactLabel} />
+      </span>
+    </div>
+  </div>
+</nav>

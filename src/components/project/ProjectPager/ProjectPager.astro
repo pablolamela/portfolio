@@ -1,0 +1,62 @@
+---
+import Button from "@/components/ui/Button";
+import style from "./projectPager.module.scss";
+
+type ProjectMeta = {
+  slug: string;
+  title: string;
+  skills: string[];
+  thumbnail: string;
+  order?: number;
+  showInHome?: boolean;
+};
+
+interface Props {
+  currentSlug: string;
+}
+
+const { currentSlug } = Astro.props as Props;
+
+// Load all project pages (including hidden), then compute prev/next among visible ones
+const modules = import.meta.glob("../../../pages/projects/*.astro", { eager: true }) as Record<
+  string,
+  any
+>;
+
+const allProjects = Object.values(modules)
+  .map((m) => (m as { project?: ProjectMeta }).project)
+  .filter((p): p is ProjectMeta => Boolean(p))
+  .sort((a, b) => (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER));
+
+const currentIndex = allProjects.findIndex((p) => p.slug === currentSlug);
+
+function findPrevVisible(from: number) {
+  for (let i = from - 1; i >= 0; i--) {
+    const p = allProjects[i];
+    if (p.showInHome !== false) return p;
+  }
+  return undefined;
+}
+
+function findNextVisible(from: number) {
+  for (let i = from + 1; i < allProjects.length; i++) {
+    const p = allProjects[i];
+    if (p.showInHome !== false) return p;
+  }
+  return undefined;
+}
+
+const prev = currentIndex >= 0 ? findPrevVisible(currentIndex) : undefined;
+const next = currentIndex >= 0 ? findNextVisible(currentIndex) : undefined;
+---
+
+<section class={style.ProjectPager} aria-label="Project pagination">
+  <div class={style.ProjectPager_item}>
+    {prev && <Button class={style.ProjectPager_prevBtn} href={`/projects/${prev.slug}`} label="Previous" />}
+    {prev && <div class={style.ProjectPager_caption}>{prev.title}</div>}
+  </div>
+  <div class={style.ProjectPager_item} style="text-align: right;">
+    {next && <Button class={style.ProjectPager_nextBtn} href={`/projects/${next.slug}`} label="Next" />}
+    {next && <div class={style.ProjectPager_caption}>{next.title}</div>}
+  </div>
+</section>
