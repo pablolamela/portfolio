@@ -52,17 +52,6 @@
   display: contents;
 }
 
-/* Brand text */
-.Navbar_brand {
-  @include title-typo();
-  text-transform: none; /* resetea el uppercase que hereda de .Button (label-typo) */
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  color: use-color("primary");
-  text-decoration: none;
-  padding: use-space("s2") 0; /* layout_M55I9A */
-}
-
 .Navbar_spacer {
   flex: 0 0 1px;
   height: 1px;

@@ -20,7 +20,7 @@ const DOT = { size: 20, radius: 10, blur: 8, bg: "rgba(255, 255, 255, 0.1)" }; /
 const GROW = { size: 40, radius: 20, blur: 0, bg: "rgba(255, 255, 255, 0)" }; // grow: hueco transparente, sin blur
 const PROJECT_BG = "rgba(8, 8, 8, 0.4)"; // project: pill oscuro (= use-color('background') @ 0.4), sin cambios
 
-const MORPH_DUR = 0.35;
+const MORPH_DUR = 0.15;
 const LABEL_IN_DUR = 0.4;
 const LABEL_OUT_DUR = 0.12;
 const MORPH_EASE = "power3.out";
@@ -96,25 +96,28 @@ export default function setupCursor(): () => void {
             backgroundColor: PROJECT_BG,
             duration: MORPH_DUR,
           })
-          .to(labelText, { opacity: 1, y: 0, duration: LABEL_IN_DUR, scrambleText: scramble(DEFAULT_LABEL, 1.5) });
+          .to(labelText, {
+            opacity: 1,
+            y: 0,
+            duration: LABEL_IN_DUR,
+            scrambleText: scramble(DEFAULT_LABEL, 1.5),
+          });
       } else {
         const target = next === "grow" ? GROW : DOT;
         // Saca el texto con fade rápido (sin scramble) y, en paralelo, lleva el dot al círculo
         // objetivo desde su tamaño ACTUAL (radio y size con misma dur/ease ⇒ siempre circular).
-        morph
-          .to(labelText, { opacity: 0, y: SLIDE_UP, duration: LABEL_OUT_DUR }, 0)
-          .to(
-            dot,
-            {
-              width: target.size,
-              height: target.size,
-              borderRadius: target.radius,
-              "--cursor-blur": target.blur,
-              backgroundColor: target.bg,
-              duration: MORPH_DUR,
-            },
-            0
-          );
+        morph.to(labelText, { opacity: 0, y: SLIDE_UP, duration: LABEL_OUT_DUR }, 0).to(
+          dot,
+          {
+            width: target.size,
+            height: target.size,
+            borderRadius: target.radius,
+            "--cursor-blur": target.blur,
+            backgroundColor: target.bg,
+            duration: MORPH_DUR,
+          },
+          0
+        );
       }
     };
 
@@ -173,7 +176,12 @@ export default function setupCursor(): () => void {
           duration: MORPH_DUR,
         })
         // El texto entra scrambleando hacia el mensaje, una vez el recuadro ha terminado de formarse.
-        .to(labelText, { opacity: 1, y: 0, duration: LABEL_IN_DUR, scrambleText: scramble(text, 1.5) });
+        .to(labelText, {
+          opacity: 1,
+          y: 0,
+          duration: LABEL_IN_DUR,
+          scrambleText: scramble(text, 1.5),
+        });
 
       messageTimer = setTimeout(() => {
         locked = false;
@@ -195,10 +203,34 @@ export default function setupCursor(): () => void {
     gsap.set(labelText, { opacity: 0, y: SLIDE_UP });
     root.setAttribute("data-state", "default");
 
+    // Tras cada navegación SPA el cursor persiste en el DOM pero la nueva página no tiene
+    // [data-card], así que hay que resetear el estado sin esperar al próximo mousemove.
+    const onPageSwap = () => {
+      if (messageTimer) {
+        clearTimeout(messageTimer);
+        messageTimer = null;
+      }
+      locked = false;
+      pendingState = "default";
+      lastState = "default";
+      morph?.kill();
+      morph = null;
+      root.setAttribute("data-state", "default");
+      gsap.set(dot, {
+        width: DOT.size,
+        height: DOT.size,
+        borderRadius: DOT.radius,
+        "--cursor-blur": DOT.blur,
+        backgroundColor: DOT.bg,
+      });
+      gsap.set(labelText, { opacity: 0, y: SLIDE_UP });
+    };
+
     window.addEventListener("mousemove", onMove, { passive: true });
     document.addEventListener("mouseleave", onLeave);
     document.addEventListener("mouseenter", onEnter);
     window.addEventListener("cursor:message", onMessage);
+    document.addEventListener("astro:after-swap", onPageSwap);
 
     // gsap.context revierte tweens/sets; este return limpia listeners + el flag de hide.
     return () => {
@@ -206,6 +238,7 @@ export default function setupCursor(): () => void {
       document.removeEventListener("mouseleave", onLeave);
       document.removeEventListener("mouseenter", onEnter);
       window.removeEventListener("cursor:message", onMessage);
+      document.removeEventListener("astro:after-swap", onPageSwap);
       if (messageTimer) clearTimeout(messageTimer);
       document.documentElement.removeAttribute("data-cursor-ready");
     };
