@@ -1,0 +1,69 @@
+.HeroScramble {
+  // Bridge de tokens Sass → CSS vars que el <script> inline lee en runtime
+  // (excepción documentada "valores dinámicos por JS", patrón GlyphDither).
+  --hero-text: #{use-color('primary')};
+  --hero-grey: #{use-color('grey')};
+  --hero-bg: #{use-color('background')};
+
+  position: relative;
+  width: 100%;
+  // Primer hijo de main (padding-top: --space-120) bajo la navbar → el hero
+  // remata en el fold. Fondo uniforme: la diferencia entre $navBar-height y la
+  // altura real de la navbar es invisible.
+  height: calc(100svh - var(--nav-h, 72px) - var(--space-120));
+  min-height: 420px; // suelo para landscape bajos
+  overflow: hidden;
+}
+
+.HeroScramble_canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  // Sin touch-action:none (a diferencia de la 404): la home debe seguir
+  // scrolleando; el dedo alimenta el halo mientras se desplaza.
+}
+
+// Fallback SSR: visible sin JS, bajo prefers-reduced-motion y antes de
+// fonts.ready. El motor lo oculta al arrancar (data-active).
+.HeroScramble_static {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: use-space('s1');
+  align-items: center;
+  justify-content: center;
+  @include label-typo();
+
+  p {
+    margin: 0;
+    color: use-color('grey');
+  }
+  p:first-child {
+    color: use-color('primary');
+    font-weight: 500;
+  }
+}
+
+.HeroScramble[data-active] .HeroScramble_static {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .HeroScramble_canvas {
+    display: none;
+  }
+}
+
+.HeroScramble_srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}

@@ -1,0 +1,434 @@
+---
+import s from "./heroScramble.module.scss";
+---
+
+<section class={s.HeroScramble} data-hero-scramble>
+  <h1 class={s.HeroScramble_srOnly}>Pablo Lamela — Product Designer</h1>
+  <div class={s.HeroScramble_static} aria-hidden="true">
+    <p>PABLO LAMELA</p>
+    <p>PRODUCT DESIGNER</p>
+  </div>
+  <canvas class={s.HeroScramble_canvas} data-hero-canvas aria-hidden="true"></canvas>
+</section>
+
+<script>
+  /**
+   * ASCII Scramble Hero — retícula mono (Geist Mono) en un canvas 2D.
+   * - "PABLO LAMELA" / "PRODUCT DESIGNER" aparecen/desaparecen con scramble
+   *   en posiciones aleatorias del grid (slots escalonados).
+   * - Halo radial al puntero: caracteres grises con rampa de densidad por
+   *   distancia (centro denso → borde puntos/comas) y decay con estela.
+   * El scramble es a mano: ScrambleTextPlugin opera sobre DOM, no canvas.
+   */
+
+  const FONT = '"Geist Mono", monospace';
+  const FONT_SIZE = 13; // px — un solo tamaño: la retícula es una
+  const CELL_H = 20; // leading ~1.55
+  const TEXT_WEIGHT = 500;
+  const HALO_WEIGHT = 400;
+  const DECAY_TAU = 0.45; // s — estela visible ~0.7s
+  const RAMP = "·,:;+*#@"; // borde → centro del halo
+  // Mismo lenguaje visual que scripts/scramble.ts (redefinido local: importarlo
+  // arrastraría gsap+plugin al chunk del hero solo para una constante).
+  const SCRAMBLE_SET = "!<>-_\\/[]{}=+*^?#";
+  const TEXTS = ["PABLO LAMELA", "PRODUCT DESIGNER"];
+  const STAGGER = 0.045; // s/char (scramble-in)
+  const RESOLVE = 0.35; // s scrambleando antes de resolverse
+  const HOLD: [number, number] = [2.6, 3.4];
+  const OUT = 0.5;
+  const COOLDOWN: [number, number] = [0.6, 1.6];
+  const EDGE = 3; // celdas de margen a bordes
+  const SLOT_DELAY = 1.2; // s entre arranques de slots
+
+  type Phase = "idle" | "in" | "hold" | "out";
+  interface Slot {
+    phase: Phase;
+    text: string;
+    next: number; // índice en TEXTS (alterna)
+    col: number;
+    row: number;
+    t: number;
+    dur: number;
+    scramble: string[]; // char aleatorio vigente por posición
+    nextRoll: number; // timestamp (ms) del próximo re-roll
+    outRank: number[]; // orden normalizado 0..1 de degradación en "out"
+  }
+
+  const rand = (min: number, max: number) => min + Math.random() * (max - min);
+  const randChar = () => SCRAMBLE_SET[Math.floor(Math.random() * SCRAMBLE_SET.length)];
+
+  function start(root: HTMLElement, canvas: HTMLCanvasElement): (() => void) | null {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    const css = getComputedStyle(root);
+    const colorText = css.getPropertyValue("--hero-text").trim() || "#f7f7f7";
+    const colorGrey = css.getPropertyValue("--hero-grey").trim() || "#979797";
+    const colorBg = css.getPropertyValue("--hero-bg").trim() || "#080808";
+    const haloRadius = matchMedia("(pointer: coarse)").matches ? 110 : 140;
+
+    // ── Estado del grid ──
+    let cellW = 13;
+    let width = 0;
+    let height = 0;
+    let dpr = 1;
+    let cols = 0;
+    let rows = 0;
+    let offX = 0;
+    let offY = 0;
+    let halo = new Float32Array(0); // intensidad 0..1
+    let haloChar = new Uint8Array(0); // índice en RAMP
+    let haloNext = new Float32Array(0); // próximo shuffle (ms)
+    let occupied = new Uint8Array(0); // celdas de texto (prioridad blanca)
+    let activeSlots = 3;
+
+    const pointer = { x: 0, y: 0, active: false };
+    const slots: Slot[] = TEXTS.map(() => ({
+      phase: "idle",
+      text: "",
+      next: 0,
+      col: 0,
+      row: 0,
+      t: 0,
+      dur: 0,
+      scramble: [],
+      nextRoll: 0,
+      outRank: [],
+    }));
+    slots.push({ ...slots[0], scramble: [], outRank: [] }); // 3er slot (desktop)
+    slots.forEach((slot, k) => {
+      slot.next = k % TEXTS.length; // slot 0 → "PABLO LAMELA" inmediato
+      slot.dur = k * SLOT_DELAY;
+    });
+
+    let raf = 0;
+    let last = 0;
+    let inView = false;
+    let ready = false;
+    let dead = false;
+
+    function resize() {
+      const rect = root.getBoundingClientRect();
+      const w = Math.round(rect.width);
+      const h = Math.round(rect.height);
+      const d = Math.min(window.devicePixelRatio || 1, 2);
+      if (w === width && h === height && d === dpr) return;
+      width = w;
+      height = h;
+      dpr = d;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
+      cols = Math.max(1, Math.floor(w / cellW));
+      rows = Math.max(1, Math.floor(h / CELL_H));
+      offX = (w - cols * cellW) / 2;
+      offY = (h - rows * CELL_H) / 2;
+      halo = new Float32Array(cols * rows);
+      haloChar = new Uint8Array(cols * rows);
+      haloNext = new Float32Array(cols * rows);
+      occupied = new Uint8Array(cols * rows);
+      activeSlots = cols < 60 ? 2 : 3;
+      // Re-spawn limpio: las posiciones antiguas ya no valen en el grid nuevo
+      slots.forEach((slot, k) => {
+        slot.phase = "idle";
+        slot.t = 0;
+        slot.dur = k * SLOT_DELAY;
+      });
+      // Prewarm del slot 0: coloca el primer texto y avanza medio segundo de
+      // scramble-in para que el draw síncrono ya tenga contenido aunque el
+      // siguiente frame rAF tarde — el hero nunca está en blanco.
+      advance(slots[0], 0, performance.now());
+      slots[0].t = 0.5;
+      draw();
+    }
+
+    function areaFree(col: number, row: number, len: number): boolean {
+      // padding de 2 celdas alrededor para que dos textos no se rocen
+      for (let r = Math.max(0, row - 2); r <= Math.min(rows - 1, row + 2); r++) {
+        for (let c = Math.max(0, col - 2); c <= Math.min(cols - 1, col + len + 1); c++) {
+          if (occupied[r * cols + c]) return false;
+        }
+      }
+      return true;
+    }
+
+    function tryPlace(slot: Slot, now: number) {
+      const text = TEXTS[slot.next % TEXTS.length];
+      const len = text.length;
+      const maxCol = cols - len - EDGE;
+      const maxRow = rows - 1 - EDGE;
+      if (maxCol < EDGE || maxRow < EDGE) {
+        slot.t = 0;
+        slot.dur = 0.4; // grid demasiado pequeño ahora mismo; reintenta
+        return;
+      }
+      for (let i = 0; i < 24; i++) {
+        const col = EDGE + Math.floor(Math.random() * (maxCol - EDGE + 1));
+        const row = EDGE + Math.floor(Math.random() * (maxRow - EDGE + 1));
+        if (!areaFree(col, row, len)) continue;
+        slot.text = text;
+        slot.col = col;
+        slot.row = row;
+        slot.next++;
+        for (let j = 0; j < len; j++) occupied[row * cols + col + j] = 1;
+        slot.phase = "in";
+        slot.t = 0;
+        slot.dur = len * STAGGER + RESOLVE;
+        slot.scramble = Array.from({ length: len }, randChar);
+        slot.nextRoll = now;
+        return;
+      }
+      slot.t = 0;
+      slot.dur = 0.4; // sin hueco libre; reintenta en breve
+    }
+
+    function advance(slot: Slot, dt: number, now: number) {
+      slot.t += dt;
+      if (slot.t < slot.dur) return;
+      switch (slot.phase) {
+        case "idle":
+          tryPlace(slot, now);
+          break;
+        case "in":
+          slot.phase = "hold";
+          slot.t = 0;
+          slot.dur = rand(HOLD[0], HOLD[1]);
+          break;
+        case "hold": {
+          slot.phase = "out";
+          slot.t = 0;
+          slot.dur = OUT;
+          const len = slot.text.length;
+          const order = Array.from({ length: len }, (_, j) => j);
+          for (let i = len - 1; i > 0; i--) {
+            const k = Math.floor(Math.random() * (i + 1));
+            [order[i], order[k]] = [order[k], order[i]];
+          }
+          slot.outRank = new Array(len);
+          order.forEach((j, idx) => (slot.outRank[j] = idx / len));
+          break;
+        }
+        case "out":
+          for (let j = 0; j < slot.text.length; j++) {
+            occupied[slot.row * cols + slot.col + j] = 0;
+          }
+          slot.phase = "idle";
+          slot.t = 0;
+          slot.dur = rand(COOLDOWN[0], COOLDOWN[1]);
+          break;
+      }
+    }
+
+    function injectHalo() {
+      const r = haloRadius;
+      const minC = Math.max(0, Math.floor((pointer.x - offX - r) / cellW));
+      const maxC = Math.min(cols - 1, Math.floor((pointer.x - offX + r) / cellW));
+      const minR = Math.max(0, Math.floor((pointer.y - offY - r) / CELL_H));
+      const maxR = Math.min(rows - 1, Math.floor((pointer.y - offY + r) / CELL_H));
+      for (let row = minR; row <= maxR; row++) {
+        const cy = offY + (row + 0.5) * CELL_H;
+        for (let col = minC; col <= maxC; col++) {
+          const cx = offX + (col + 0.5) * cellW;
+          const d = Math.hypot(cx - pointer.x, cy - pointer.y);
+          if (d >= r) continue;
+          const t = 1 - d / r;
+          const smooth = t * t * (3 - 2 * t);
+          const v = Math.pow(smooth, 1.5); // rampa de densidad
+          const i = row * cols + col;
+          if (v > halo[i]) halo[i] = v; // subida instantánea, bajada por decay
+        }
+      }
+    }
+
+    function draw() {
+      const c = ctx!;
+      c.fillStyle = colorBg;
+      c.fillRect(0, 0, width, height);
+      c.textAlign = "center";
+      c.textBaseline = "middle";
+
+      // Halo gris (nunca pisa celdas de texto)
+      c.font = `${HALO_WEIGHT} ${FONT_SIZE}px ${FONT}`;
+      c.fillStyle = colorGrey;
+      for (let row = 0; row < rows; row++) {
+        const cy = offY + (row + 0.5) * CELL_H;
+        for (let col = 0; col < cols; col++) {
+          const i = row * cols + col;
+          if (halo[i] <= 0.02 || occupied[i]) continue;
+          c.globalAlpha = 0.2 + 0.7 * halo[i];
+          c.fillText(RAMP[haloChar[i]], offX + (col + 0.5) * cellW, cy);
+        }
+      }
+
+      // Textos blancos
+      c.font = `${TEXT_WEIGHT} ${FONT_SIZE}px ${FONT}`;
+      c.fillStyle = colorText;
+      for (let k = 0; k < activeSlots; k++) {
+        const slot = slots[k];
+        if (slot.phase === "idle") continue;
+        const y = offY + (slot.row + 0.5) * CELL_H;
+        for (let j = 0; j < slot.text.length; j++) {
+          const ch = slot.text[j];
+          if (ch === " ") continue;
+          let out: string | null = null;
+          let alpha = 1;
+          if (slot.phase === "hold") {
+            out = ch;
+          } else if (slot.phase === "in") {
+            const local = slot.t - j * STAGGER;
+            if (local < 0) continue;
+            if (local >= RESOLVE) out = ch;
+            else {
+              out = slot.scramble[j];
+              alpha = 0.6;
+            }
+          } else {
+            // out: cada char degrada en su turno (final → aleatorio → nada)
+            const p = slot.t / OUT;
+            const degradeAt = slot.outRank[j] * 0.5;
+            if (p < degradeAt) {
+              out = ch;
+              alpha = 1 - p * 0.4;
+            } else if (p < degradeAt + 0.3) {
+              out = slot.scramble[j];
+              alpha = 0.6 * (1 - p);
+            }
+          }
+          if (out === null) continue;
+          c.globalAlpha = alpha;
+          c.fillText(out, offX + (slot.col + j + 0.5) * cellW, y);
+        }
+      }
+      c.globalAlpha = 1;
+    }
+
+    function frame(now: number) {
+      raf = requestAnimationFrame(frame);
+      const dt = Math.min((now - last) / 1000, 0.05);
+      last = now;
+
+      if (pointer.active) injectHalo();
+
+      // Decay exponencial + shuffle de carácter (shimmer terminal)
+      const k = Math.exp(-dt / DECAY_TAU);
+      for (let i = 0; i < halo.length; i++) {
+        if (halo[i] <= 0.02) {
+          halo[i] = 0;
+          continue;
+        }
+        halo[i] *= k;
+        if (now >= haloNext[i]) {
+          const level = Math.floor(halo[i] * (RAMP.length - 1)) + Math.floor(rand(-1, 2));
+          haloChar[i] = Math.max(0, Math.min(RAMP.length - 1, level));
+          haloNext[i] = now + rand(70, 150);
+        }
+      }
+
+      for (let s = 0; s < activeSlots; s++) {
+        const slot = slots[s];
+        advance(slot, dt, now);
+        if (slot.phase !== "idle" && now >= slot.nextRoll) {
+          for (let j = 0; j < slot.scramble.length; j++) slot.scramble[j] = randChar();
+          slot.nextRoll = now + 50;
+        }
+      }
+
+      draw();
+    }
+
+    function updateRunning() {
+      const should = ready && inView && !document.hidden && !dead;
+      if (should && !raf) {
+        last = performance.now(); // resetea dt tras pausa
+        raf = requestAnimationFrame(frame);
+      } else if (!should && raf) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
+    }
+
+    // ── Eventos ──
+    const onPointerMove = (e: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      pointer.x = e.clientX - rect.left;
+      pointer.y = e.clientY - rect.top;
+      pointer.active = true;
+    };
+    const onPointerOff = () => {
+      pointer.active = false; // la estela muere sola por decay
+    };
+    const onVisibility = () => updateRunning();
+
+    root.addEventListener("pointermove", onPointerMove, { passive: true });
+    root.addEventListener("pointerleave", onPointerOff);
+    root.addEventListener("pointercancel", onPointerOff);
+    root.addEventListener("pointerup", onPointerOff);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    const ro = new ResizeObserver(resize);
+    const io = new IntersectionObserver((entries) => {
+      inView = entries[0].isIntersecting;
+      updateRunning();
+    });
+
+    // Setup async: Geist Mono debe estar cargada antes de medir la celda
+    void (async () => {
+      try {
+        await document.fonts.load(`${TEXT_WEIGHT} ${FONT_SIZE}px "Geist Mono"`);
+        await document.fonts.load(`${HALO_WEIGHT} ${FONT_SIZE}px "Geist Mono"`);
+        await document.fonts.ready;
+      } catch {
+        /* sin Font Loading API: se mide con el fallback monospace */
+      }
+      if (dead) return;
+      ctx.font = `${HALO_WEIGHT} ${FONT_SIZE}px ${FONT}`;
+      cellW = Math.round(ctx.measureText("0").width + 5); // tracking aireado
+      ready = true;
+      root.dataset.active = "1"; // oculta el fallback estático
+      ro.observe(root);
+      io.observe(root);
+      resize(); // primer frame síncrono (incluye el prewarm del slot 0)
+      updateRunning();
+    })();
+
+    return () => {
+      dead = true;
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+      ro.disconnect();
+      io.disconnect();
+      root.removeEventListener("pointermove", onPointerMove);
+      root.removeEventListener("pointerleave", onPointerOff);
+      root.removeEventListener("pointercancel", onPointerOff);
+      root.removeEventListener("pointerup", onPointerOff);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }
+
+  let cleanup: (() => void) | null = null;
+
+  function initHeroScramble() {
+    if (cleanup) return; // idempotente (init inmediato + astro:page-load)
+    const root = document.querySelector<HTMLElement>("[data-hero-scramble]");
+    const canvas = root?.querySelector<HTMLCanvasElement>("[data-hero-canvas]");
+    if (!root || !canvas) return;
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return; // fallback estático
+    cleanup = start(root, canvas);
+  }
+
+  initHeroScramble();
+  // ClientRouter: re-init al volver al home por navegación SPA + teardown al salir.
+  declare global {
+    interface Window {
+      __heroScrambleBound?: boolean;
+    }
+  }
+  if (!window.__heroScrambleBound) {
+    window.__heroScrambleBound = true;
+    document.addEventListener("astro:page-load", initHeroScramble);
+    document.addEventListener("astro:before-swap", () => {
+      cleanup?.();
+      cleanup = null;
+    });
+  }
+</script>

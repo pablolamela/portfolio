@@ -9,7 +9,7 @@
 // values remain as CSS custom properties — the project's documented exception.
 
 :root {
-  /* Default font: Geist (body); Inter var se mantiene cargado solo para el hero */
+  /* Default font: Geist (body); Geist Mono para labels y el hero */
   font-family:
     "Geist",
     system-ui,
@@ -35,8 +35,8 @@
   --space-10: 10px; /* small gaps */
   --space-body-x: 24px; /* body horizontal margin */
 
-  /* Spacing for hero section */
-  --hero-section: 50vh;
+  /* Navbar height (leída por lenis.ts para el offset de anchors y por el hero) */
+  --nav-h: #{$navBar-height};
 }
 
 ::-moz-selection,
@@ -62,11 +62,6 @@ video {
   }
 }
 
-@include for-screens-below("s") {
-  :root {
-    --hero-section: 30vh;
-  }
-}
 /* Mobile tokens (override desktop values) */
 @include for-screens-below("s") {
   :root {
@@ -87,7 +82,7 @@ video {
 /* Use variable font if supported */
 @supports (font-variation-settings: normal) {
   :root {
-    /* Geist soporta variable fonts; Inter var se reserva para el hero */
+    /* Geist soporta variable fonts */
     font-family:
       "Geist",
       system-ui,

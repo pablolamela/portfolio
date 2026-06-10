@@ -30,7 +30,7 @@ src/
     globals/_reset.scss
     globals/_body.scss
     *.module.scss                 ← estilos a nivel de página (info, project, notfound, Sections)
-  scripts/                        ← lógica JS de cliente (lenis, gsap gravity, hover)
+  scripts/                        ← lógica JS de cliente (lenis, cursor, scramble)
   data/  config/  images/  videos/
 ```
 
@@ -69,8 +69,8 @@ El builder entry **se auto-inyecta** en cada `.scss` vía `astro.config.mjs → 
   - Espacios → `use-space('s4')` (escala `s0`=4px … `s8`=64px)
   - Z-index → `use-layer('navbar')`, `use-layer('overlay')`
 - **Excepción documentada — CSS custom properties permitidas para:**
-  - **Tokens responsive** que cambian en breakpoints vía override en `:root`: `--space-120`, `--space-40`, `--space-24`, `--space-32`, `--space-10`, `--space-body-x`, `--hero-section`, `--blur-height`. (No tienen equivalente estático sin duplicar media queries en cada uso.)
-  - **Valores dinámicos por JS**: `--x`/`--y` (cursor de ProjectGrid), `--w` (gravedad del hero).
+  - **Tokens responsive** que cambian en breakpoints vía override en `:root`: `--space-120`, `--space-40`, `--space-24`, `--space-32`, `--space-10`, `--space-body-x`, `--blur-height`. (No tienen equivalente estático sin duplicar media queries en cada uso.)
+  - **Valores dinámicos por JS**: `--x`/`--y` (cursor de ProjectGrid), y los puentes token→CSS var que lee JS en runtime: `--nav-h` (lenis, hero) y los colores de los fx (HeroScramble, GlyphDither).
 - **Breakpoints SIEMPRE vía mixins.** Nunca `@media (min-width…)` raw para anchos:
   - `@include for-screen('xs'|'s'|'m'|'l')` — rango único
   - `@include for-screens-above('m')` / `for-screens-below('s')` / `for-screens-between('s','m')`
@@ -91,14 +91,13 @@ $layers: ('navbar':100, 'overlay':90, 'base':0);
 $navBar-height: 72px;
 ```
 
-Fuente: Inter Display (variable, vía rsms.me). El reset global fuerza `font-weight:400` y `border-radius:0` en todo.
+Fuentes: Geist (body) y Geist Mono (labels, hero), variables vía Google Fonts. El reset global fuerza `font-weight:400` y `border-radius:0` en todo.
 
 ## Animaciones y scroll
 
 - **GSAP:** encapsula en `gsap.context()` y limpia con `ctx.revert()`. Respeta `prefers-reduced-motion`.
 - **Lenis:** instancia de scroll suave inicializada desde `src/scripts/lenis`; los estilos base de `.lenis` viven en `globals.scss`.
-- **Boot cliente:** los scripts de cliente se cargan con islas React (`BootClient`, `BootHover`) que hacen `import('@/scripts/...')` dinámico en `useEffect` (evita side-effects en SSR).
-- **split-type** se usa para el efecto de peso variable del hero (`scripts/variable-weight-gravity.ts`).
+- **Boot cliente:** los scripts de cliente globales se cargan con islas React (`BootClient`) que hacen `import('@/scripts/...')` dinámico en `useEffect` (evita side-effects en SSR). Los efectos específicos de un componente (HeroScramble, GlyphDither, ProjectGrid) viven como `<script>` inline en su `.astro`, con re-init en `astro:page-load` y teardown en `astro:before-swap` cuando la página usa ClientRouter.
 
 ## Reglas mínimas de calidad
 
