@@ -83,13 +83,16 @@ const count = projects.length;
   </div>
 
   <script is:inline type="module">
-    const cards = Array.from(document.querySelectorAll("[data-card]"));
-
-    // Solo activar en punteros finos (ratón)
-    const finePointer = matchMedia("(pointer: fine)");
-    if (finePointer.matches) {
+    function initProjectGrid() {
+      // Solo activar en punteros finos (ratón)
+      const finePointer = matchMedia("(pointer: fine)");
+      if (!finePointer.matches) return;
       const hoverState = new WeakMap();
+      const cards = Array.from(document.querySelectorAll("[data-card]"));
       cards.forEach((card) => {
+        // Idempotente: con ClientRouter este script puede re-ejecutarse por swap.
+        if (card.dataset.gridBound) return;
+        card.dataset.gridBound = "1";
         const video = card.querySelector("[data-thumb-video]");
 
         if (video) {
@@ -275,6 +278,13 @@ const count = projects.length;
         card.addEventListener("focus", onEnter);
         card.addEventListener("blur", onLeave);
       });
+    }
+
+    initProjectGrid();
+    // ClientRouter: re-inicializa al volver al home por navegación SPA.
+    if (!window.__projectGridBound) {
+      window.__projectGridBound = true;
+      document.addEventListener("astro:page-load", initProjectGrid);
     }
   </script>
 </section>

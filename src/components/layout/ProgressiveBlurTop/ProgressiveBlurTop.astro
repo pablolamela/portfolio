@@ -2,7 +2,7 @@
 import style from "./progressiveBlurTop.module.scss";
 ---
 
-<div aria-hidden="true" class={style.ProgressiveBlurTop}>
+<div aria-hidden="true" class={style.ProgressiveBlurTop} transition:persist="blur-top">
   <div class={style.ProgressiveBlurTop_wrapper}>
     <div class={`${style.ProgressiveBlurTop_layer} ${style.ProgressiveBlurTop_l1}`}></div>
     <div class={`${style.ProgressiveBlurTop_layer} ${style.ProgressiveBlurTop_l2}`}></div>

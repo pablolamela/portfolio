@@ -44,18 +44,21 @@ export default function setupPortraitLight(): () => void {
     { threshold: 0.65 }
   );
 
-  function onMouseEnter() {
+  // Arrow functions (no declarations) para conservar el narrowing de `const root`
+  // tras el early-return de la línea 13; las declarations se hoistean y TS pierde
+  // el narrowing, marcando root como posiblemente null.
+  const onMouseEnter = () => {
     window.clearTimeout(inviewTimer);
     window.clearTimeout(hoverTimer);
     hoverTimer = window.setTimeout(() => {
       root.dataset.lit = "off";
     }, HOVER_DELAY);
-  }
+  };
 
-  function onMouseLeave() {
+  const onMouseLeave = () => {
     window.clearTimeout(hoverTimer);
     if (isInView) root.dataset.lit = "on";
-  }
+  };
 
   // Hover sobre las imágenes, no el contenedor del grid (que es más grande)
   const imgs = Array.from(root.querySelectorAll<HTMLElement>("img"));

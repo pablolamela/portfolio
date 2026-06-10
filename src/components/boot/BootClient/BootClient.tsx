@@ -14,6 +14,8 @@ export default function BootClient() {
     void import("@/scripts/init-gravity");
     void import("@/scripts/init-cursor");
     void import("@/scripts/mailto-copy");
+    void import("@/scripts/navbar-scramble");
+    void import("@/scripts/page-fade");
   }, []);
   return null;
 }

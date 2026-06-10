@@ -1,11 +1,11 @@
 .Navbar {
   position: sticky;
   top: 0;
-  z-index: use-layer('navbar');
+  z-index: use-layer("navbar");
   display: flex;
   align-items: center;
   justify-content: center; /* matches layout_6JLRR7 */
-  gap: use-space('s4');
+  gap: use-space("s4");
   width: 100%;
   mix-blend-mode: difference;
 }
@@ -44,15 +44,23 @@
   justify-content: flex-end; /* layout_6YT7X5 */
 }
 
+/* Wrapper-hook del botón Contact/Close: display:contents lo saca del layout, así
+   el <a> sigue siendo el flex-item directo y el scramble no altera la navbar.
+   (Navbar_right es flex:1, así que el cambio de ancho "Contact"→"Close" no
+   desplaza al resto.) */
+.Navbar_action {
+  display: contents;
+}
+
 /* Brand text */
 .Navbar_brand {
   @include title-typo();
   text-transform: none; /* resetea el uppercase que hereda de .Button (label-typo) */
   font-weight: 500;
   letter-spacing: -0.02em;
-  color: use-color('primary');
+  color: use-color("primary");
   text-decoration: none;
-  padding: use-space('s2') 0; /* layout_M55I9A */
+  padding: use-space("s2") 0; /* layout_M55I9A */
 }
 
 .Navbar_spacer {

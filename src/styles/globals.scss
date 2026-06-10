@@ -96,3 +96,27 @@ html.lenis body {
 .lenis.lenis-scrolling iframe {
   pointer-events: none; /* opcional: evita capturas de iframes durante scroll */
 }
+
+/* ─── ClientRouter: swap instantáneo (el fundido lo hace un overlay propio) ───
+   El fundido a negro NO usa la View Transitions API: sus snapshots fundirían la
+   navbar persistida (que cae en el snapshot `root`, view-transition-name: none) y
+   congelarían el scramble en vivo. Anulamos toda animación VT → el swap es un corte
+   instantáneo; el fundido lo hace [data-page-fade] (overlay por debajo de la navbar)
+   animado con GSAP. */
+::view-transition-group(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation: none !important;
+}
+
+/* Overlay de fundido entre páginas. z-index entre el contenido y la navbar
+   (navbar=100, cursor=1000) → cubre main/footer/blur pero deja navbar y cursor
+   siempre visibles. GSAP anima su opacidad; persiste vía transition:persist. */
+[data-page-fade] {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  background: use-color('background');
+  opacity: 0;
+  pointer-events: none;
+}

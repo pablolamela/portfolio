@@ -795,4 +795,7 @@ const { text = "404" } = Astro.props;
   } else {
     document.addEventListener("DOMContentLoaded", initGlyphDither, { once: true });
   }
+  // ClientRouter: re-inicializa al llegar al 404 por navegación SPA. initGlyphDither
+  // es idempotente (guard root.dataset.bound), así que repetir es inocuo.
+  document.addEventListener("astro:page-load", initGlyphDither);
 </script>
