@@ -1,4 +1,5 @@
 import gsap from "gsap";
+import { scramble } from "@/scripts/scramble";
 
 /**
  * Global custom cursor — replaces the native cursor (hidden via cursor:none, gated on
@@ -20,7 +21,7 @@ const GROW = { size: 40, radius: 20, blur: 0, bg: "rgba(255, 255, 255, 0)" }; //
 const PROJECT_BG = "rgba(8, 8, 8, 0.4)"; // project: pill oscuro (= use-color('background') @ 0.4), sin cambios
 
 const MORPH_DUR = 0.35;
-const LABEL_IN_DUR = 0.25;
+const LABEL_IN_DUR = 0.4;
 const LABEL_OUT_DUR = 0.12;
 const MORPH_EASE = "power3.out";
 const SLIDE_UP = 8; // px
@@ -85,7 +86,7 @@ export default function setupCursor(): () => void {
 
       if (next === "project") {
         const box = measureBox(DEFAULT_LABEL);
-        // 1) la forma muta (círculo → píldora oscura); 2) luego entra el texto.
+        // 1) la forma muta (círculo → píldora oscura); 2) luego el texto entra scrambleando.
         morph
           .to(dot, {
             width: box.width,
@@ -95,12 +96,11 @@ export default function setupCursor(): () => void {
             backgroundColor: PROJECT_BG,
             duration: MORPH_DUR,
           })
-          .to(labelText, { opacity: 1, y: 0, duration: LABEL_IN_DUR }, "-=0.15");
+          .to(labelText, { opacity: 1, y: 0, duration: LABEL_IN_DUR, scrambleText: scramble(DEFAULT_LABEL, 1.5) });
       } else {
         const target = next === "grow" ? GROW : DOT;
-        // Saca el texto rápido (por si veníamos de project a medio revelar) y, en paralelo,
-        // lleva el dot al círculo objetivo desde su tamaño ACTUAL (radio y size con misma
-        // dur/ease ⇒ siempre circular durante el tween).
+        // Saca el texto con fade rápido (sin scramble) y, en paralelo, lleva el dot al círculo
+        // objetivo desde su tamaño ACTUAL (radio y size con misma dur/ease ⇒ siempre circular).
         morph
           .to(labelText, { opacity: 0, y: SLIDE_UP, duration: LABEL_OUT_DUR }, 0)
           .to(
@@ -161,7 +161,6 @@ export default function setupCursor(): () => void {
       locked = true;
 
       const box = measureBox(text);
-      labelText.textContent = text; // el label está oculto (grow) → sin parpadeo
       morph?.kill();
       morph = gsap.timeline({ defaults: { ease: MORPH_EASE, overwrite: "auto" } });
       morph
@@ -173,12 +172,14 @@ export default function setupCursor(): () => void {
           backgroundColor: PROJECT_BG,
           duration: MORPH_DUR,
         })
-        .to(labelText, { opacity: 1, y: 0, duration: LABEL_IN_DUR }, "-=0.15");
+        // El texto entra scrambleando hacia el mensaje, una vez el recuadro ha terminado de formarse.
+        .to(labelText, { opacity: 1, y: 0, duration: LABEL_IN_DUR, scrambleText: scramble(text, 1.5) });
 
       messageTimer = setTimeout(() => {
         locked = false;
         messageTimer = null;
-        labelText.textContent = DEFAULT_LABEL;
+        // applyState scramblea solo hacia el objetivo (""=oculto / DEFAULT_LABEL=project),
+        // sin swap instantáneo de textContent que delataría el efecto.
         lastState = pendingState;
         root.setAttribute("data-state", pendingState);
         applyState(pendingState);

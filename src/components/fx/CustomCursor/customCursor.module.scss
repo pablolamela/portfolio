@@ -47,8 +47,7 @@ $dot-border: 1px;
 // Texto "View Project": wrapper centrado (estático) + texto interno que GSAP anima en
 // opacity + y (fade + slide-up). El material vive en el disco, no aquí.
 .Cursor_label {
-  font-size: 1rem;
-  line-height: 1;
+  @include label-typo(); // Geist Mono mayúsculas (igual que botones/nav)
   white-space: nowrap;
   text-align: center;
   color: use-color('primary');

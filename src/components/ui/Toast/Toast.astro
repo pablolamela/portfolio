@@ -4,7 +4,11 @@ import s from "./toast.module.scss";
 
 <!-- Notificación inferior para "Email copied" en touch / reduced-motion / desktop pre-ready.
      Es además el anunciador aria-live (paridad con lectores de pantalla, el cursor es aria-hidden).
-     Centrado por flex → el transform queda libre para GSAP (lo anima mailto-copy.ts). -->
+     Centrado por flex → el transform queda libre para GSAP (lo anima mailto-copy.ts).
+     El texto visible scramblea (aria-hidden); el sr-only lleva el texto limpio a anunciar. -->
 <div data-toast-root class={s.Toast} role="status" aria-live="polite" aria-atomic="true" transition:persist="toast">
-  <span data-toast-pill class={s.Toast_pill}></span>
+  <span data-toast-pill class={s.Toast_pill}>
+    <span data-toast-text aria-hidden="true"></span>
+  </span>
+  <span data-toast-sr class={s.Toast_sr}></span>
 </div>

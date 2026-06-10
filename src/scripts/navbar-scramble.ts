@@ -1,5 +1,5 @@
 import gsap from "gsap";
-import { ScrambleTextPlugin } from "gsap/ScrambleTextPlugin";
+import { scramble } from "@/scripts/scramble";
 
 /**
  * Anima el botón derecho de la navbar (Contact ↔ Close) en cada navegación SPA.
@@ -12,9 +12,6 @@ import { ScrambleTextPlugin } from "gsap/ScrambleTextPlugin";
  * El estado inicial lo fija el SSR (carga directa de /info ya muestra "Close" sin
  * animación, que es lo correcto: no hubo transición).
  */
-gsap.registerPlugin(ScrambleTextPlugin);
-
-const SCRAMBLE_CHARS = "!<>-_\\/[]{}=+*^?#";
 const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)");
 
 type Target = { word: string; href: string };
@@ -49,7 +46,7 @@ function updateContactButton() {
   gsap.to(link, {
     duration: 0.6,
     ease: "none",
-    scrambleText: { text: word, chars: SCRAMBLE_CHARS, speed: 0.5, revealDelay: 0 },
+    scrambleText: scramble(word),
   });
 }
 
