@@ -30,20 +30,25 @@ import s from "./heroScramble.module.scss";
   // Mismo lenguaje visual que scripts/scramble.ts (redefinido local: importarlo
   // arrastraría gsap+plugin al chunk del hero solo para una constante).
   const SCRAMBLE_SET = "!<>-_\\/[]{}=+*^?#";
-  const TEXT = "PRODUCT DESIGNER";
+  const TEXT = "PRODUCT DESIGNER"; // hero: centrado, blanco y permanente
+  const TERMS = ["UX / UI", "DESIGN SYSTEMS", "DIGITAL PRODUCTS"]; // grises, alrededor
   const STAGGER = 0.045; // s/char (scramble-in)
   const RESOLVE = 0.35; // s scrambleando antes de resolverse
   const HOLD: [number, number] = [2.6, 3.4];
   const OUT = 0.5;
-  const COOLDOWN: [number, number] = [0.6, 1.6];
+  const COOLDOWN: [number, number] = [1.2, 3.2]; // gap holgado: no todos a la vez
   const EDGE = 3; // celdas de margen a bordes
   const SLOT_DELAY = 0.8; // s entre arranques de slots
-  const SLOT_COUNT = 5; // instancias máximas (desktop)
-  const TEXT_HALO_R = 70; // px — bloom alrededor del texto al aparecer
+  // 1 hero + 1 slot por término: cada término rota en su propio slot (sin
+  // duplicados simultáneos) y reaparece en otra posición.
+  const SLOT_COUNT = 1 + TERMS.length;
+  const TEXT_HALO_SCALE = 0.6; // radio del bloom ∝ ancho del texto (desborda un poco los extremos)
 
   type Phase = "idle" | "in" | "hold" | "out";
   interface Slot {
     phase: Phase;
+    hero: boolean; // PRODUCT DESIGNER: centrado, aparece primero, no desaparece
+    term: string; // término fijo de este slot (vacío para el hero, usa TEXT)
     text: string;
     col: number;
     row: number;
@@ -85,6 +90,8 @@ import s from "./heroScramble.module.scss";
     const pointer = { x: 0, y: 0, active: false };
     const slots: Slot[] = Array.from({ length: SLOT_COUNT }, (_, k) => ({
       phase: "idle" as Phase,
+      hero: k === 0, // slot 0 es el título central
+      term: k === 0 ? TEXT : TERMS[k - 1], // un término distinto por slot
       text: "",
       col: 0,
       row: 0,
@@ -146,8 +153,20 @@ import s from "./heroScramble.module.scss";
       return true;
     }
 
+    function place(slot: Slot, text: string, col: number, row: number, now: number) {
+      slot.text = text;
+      slot.col = col;
+      slot.row = row;
+      for (let j = 0; j < text.length; j++) occupied[row * cols + col + j] = 1;
+      slot.phase = "in";
+      slot.t = 0;
+      slot.dur = text.length * STAGGER + RESOLVE;
+      slot.scramble = Array.from({ length: text.length }, randChar);
+      slot.nextRoll = now;
+    }
+
     function tryPlace(slot: Slot, now: number) {
-      const text = TEXT;
+      const text = slot.term; // fijo por slot → todos aparecen, ninguno se duplica
       const len = text.length;
       const maxCol = cols - len - EDGE;
       const maxRow = rows - 1 - EDGE;
@@ -156,19 +175,16 @@ import s from "./heroScramble.module.scss";
         slot.dur = 0.4; // grid demasiado pequeño ahora mismo; reintenta
         return;
       }
+      // El hero va siempre centrado (y primero, con el grid vacío → libre).
+      if (slot.hero) {
+        place(slot, text, Math.floor((cols - len) / 2), Math.floor((rows - 1) / 2), now);
+        return;
+      }
       for (let i = 0; i < 24; i++) {
         const col = EDGE + Math.floor(Math.random() * (maxCol - EDGE + 1));
         const row = EDGE + Math.floor(Math.random() * (maxRow - EDGE + 1));
         if (!areaFree(col, row, len)) continue;
-        slot.text = text;
-        slot.col = col;
-        slot.row = row;
-        for (let j = 0; j < len; j++) occupied[row * cols + col + j] = 1;
-        slot.phase = "in";
-        slot.t = 0;
-        slot.dur = len * STAGGER + RESOLVE;
-        slot.scramble = Array.from({ length: len }, randChar);
-        slot.nextRoll = now;
+        place(slot, text, col, row, now);
         return;
       }
       slot.t = 0;
@@ -185,7 +201,8 @@ import s from "./heroScramble.module.scss";
         case "in":
           slot.phase = "hold";
           slot.t = 0;
-          slot.dur = rand(HOLD[0], HOLD[1]);
+          // El hero se queda en hold para siempre; los términos rotan.
+          slot.dur = slot.hero ? Infinity : rand(HOLD[0], HOLD[1]);
           break;
         case "hold": {
           slot.phase = "out";
@@ -212,50 +229,23 @@ import s from "./heroScramble.module.scss";
       }
     }
 
-    function injectHalo() {
-      const r = haloRadius;
-      const minC = Math.max(0, Math.floor((pointer.x - offX - r) / cellW));
-      const maxC = Math.min(cols - 1, Math.floor((pointer.x - offX + r) / cellW));
-      const minR = Math.max(0, Math.floor((pointer.y - offY - r) / CELL_H));
-      const maxR = Math.min(rows - 1, Math.floor((pointer.y - offY + r) / CELL_H));
+    // Halo radial compartido por puntero y textos: enciende celdas alrededor
+    // de (px, py) con rampa de densidad por distancia. Subida instantánea;
+    // la bajada la hace el decay del loop.
+    function injectRadial(px: number, py: number, r: number, strength: number) {
+      const minC = Math.max(0, Math.floor((px - offX - r) / cellW));
+      const maxC = Math.min(cols - 1, Math.floor((px - offX + r) / cellW));
+      const minR = Math.max(0, Math.floor((py - offY - r) / CELL_H));
+      const maxR = Math.min(rows - 1, Math.floor((py - offY + r) / CELL_H));
       for (let row = minR; row <= maxR; row++) {
         const cy = offY + (row + 0.5) * CELL_H;
         for (let col = minC; col <= maxC; col++) {
           const cx = offX + (col + 0.5) * cellW;
-          const d = Math.hypot(cx - pointer.x, cy - pointer.y);
+          const d = Math.hypot(cx - px, cy - py);
           if (d >= r) continue;
           const t = 1 - d / r;
           const smooth = t * t * (3 - 2 * t);
-          const v = Math.pow(smooth, 1.5); // rampa de densidad
-          const i = row * cols + col;
-          if (v > halo[i]) halo[i] = v; // subida instantánea, bajada por decay
-        }
-      }
-    }
-
-    // Mismo halo que el puntero, pero alrededor del rectángulo de un texto:
-    // bloom que acompaña al scramble-in y se apaga solo por decay.
-    function injectTextHalo(slot: Slot, env: number) {
-      const r = TEXT_HALO_R;
-      const x0 = offX + slot.col * cellW;
-      const x1 = offX + (slot.col + slot.text.length) * cellW;
-      const y0 = offY + slot.row * CELL_H;
-      const y1 = y0 + CELL_H;
-      const minC = Math.max(0, Math.floor((x0 - offX - r) / cellW));
-      const maxC = Math.min(cols - 1, Math.floor((x1 - offX + r) / cellW));
-      const minR = Math.max(0, Math.floor((y0 - offY - r) / CELL_H));
-      const maxR = Math.min(rows - 1, Math.floor((y1 - offY + r) / CELL_H));
-      for (let row = minR; row <= maxR; row++) {
-        const cy = offY + (row + 0.5) * CELL_H;
-        const dy = Math.max(y0 - cy, cy - y1, 0);
-        for (let col = minC; col <= maxC; col++) {
-          const cx = offX + (col + 0.5) * cellW;
-          const dx = Math.max(x0 - cx, cx - x1, 0);
-          const d = Math.hypot(dx, dy); // distancia al rectángulo del texto
-          if (d >= r) continue;
-          const t = 1 - d / r;
-          const smooth = t * t * (3 - 2 * t);
-          const v = Math.pow(smooth, 1.5) * env * 0.85; // algo más sutil que el puntero
+          const v = Math.pow(smooth, 1.5) * strength; // rampa de densidad
           const i = row * cols + col;
           if (v > halo[i]) halo[i] = v;
         }
@@ -282,20 +272,31 @@ import s from "./heroScramble.module.scss";
         }
       }
 
-      // Textos blancos
+      // Textos: hero en blanco, términos en gris
       c.font = `${TEXT_WEIGHT} ${FONT_SIZE}px ${FONT}`;
-      c.fillStyle = colorText;
       for (let k = 0; k < activeSlots; k++) {
         const slot = slots[k];
         if (slot.phase === "idle") continue;
+        c.fillStyle = slot.hero ? colorText : colorGrey;
         const y = offY + (slot.row + 0.5) * CELL_H;
+        // Hover sobre el texto: vuelve a cifrar sus glifos mientras el puntero
+        // está encima (con una celda de tolerancia alrededor del rectángulo).
+        const x0 = offX + slot.col * cellW;
+        const x1 = offX + (slot.col + slot.text.length) * cellW;
+        const y0 = offY + slot.row * CELL_H;
+        const hovered =
+          pointer.active &&
+          pointer.x >= x0 - cellW &&
+          pointer.x <= x1 + cellW &&
+          pointer.y >= y0 - cellW &&
+          pointer.y <= y0 + CELL_H + cellW;
         for (let j = 0; j < slot.text.length; j++) {
           const ch = slot.text[j];
           if (ch === " ") continue;
           let out: string | null = null;
           let alpha = 1;
           if (slot.phase === "hold") {
-            out = ch;
+            out = hovered ? slot.scramble[j] : ch;
           } else if (slot.phase === "in") {
             const local = slot.t - j * STAGGER;
             if (local < 0) continue;
@@ -329,16 +330,23 @@ import s from "./heroScramble.module.scss";
       const dt = Math.min((now - last) / 1000, 0.05);
       last = now;
 
-      if (pointer.active) injectHalo();
+      if (pointer.active) injectRadial(pointer.x, pointer.y, haloRadius, 1);
 
-      // Bloom alrededor de cada texto mientras aparece: crece con el
-      // scramble-in y se desvanece al inicio del hold (luego manda el decay).
+      // Bloom circular desde el centro de cada texto: acompaña al texto toda
+      // su vida y se apaga con él durante el scramble-out.
       for (let s = 0; s < activeSlots; s++) {
         const slot = slots[s];
         let env = 0;
         if (slot.phase === "in") env = Math.min(1, slot.t / 0.3);
-        else if (slot.phase === "hold") env = Math.max(0, 1 - slot.t / 0.6);
-        if (env > 0) injectTextHalo(slot, env);
+        else if (slot.phase === "hold") env = 1;
+        else if (slot.phase === "out") env = Math.max(0, 1 - slot.t / OUT);
+        if (env <= 0) continue;
+        injectRadial(
+          offX + (slot.col + slot.text.length / 2) * cellW,
+          offY + (slot.row + 0.5) * CELL_H,
+          slot.text.length * cellW * TEXT_HALO_SCALE,
+          env * 0.85, // algo más sutil que el puntero
+        );
       }
 
       // Decay exponencial + shuffle de carácter (shimmer terminal)
