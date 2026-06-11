@@ -1,22 +1,12 @@
 ---
 import Base from "../layouts/Base.astro";
 import ProjectGrid from "@/components/project/ProjectGrid";
-import VariableWeightHover from "@/components/fx/VariableWeightHover";
+import HeroScramble from "@/components/fx/HeroScramble";
 ---
 
 <Base title="Astro">
   <main>
-    <section class="hero">
-      <VariableWeightHover>
-        <h1 class="fitline h1-fluid" data-animate="font-weight"><span>Maxed out in detail</span><span>—</span><span>minimal in form</span></h1>
-      </VariableWeightHover>
-      <h2>
-        <span>UX</span>
-        <span>UI</span>
-        <span>PRODUCT</span>
-        <span>DESIGNER</span>
-      </h2>
-    </section>
+    <HeroScramble />
     <ProjectGrid />
   </main>
 </Base>
